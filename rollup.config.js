@@ -1,16 +1,21 @@
 import dotenv from 'dotenv'
 import clear from 'rollup-plugin-clear'
 import screeps from 'rollup-plugin-screeps'
+import typescript2 from 'rollup-plugin-typescript2'
+import commonjs from '@rollup/plugin-commonjs'
+import resolve from '@rollup/plugin-node-resolve'
 
 const {error} = dotenv.config({
   path: '.env.local'
 })
 
 if(error) {
-  console.log(error)
+  console.error(error)
 }
 
-console.log(process.env.SECRET)
+console.log(process.env.TARGET)
+
+const isDeploy = process.env.TARGET === 'deploy'
 
 export default {
   input: 'src/main.ts',
@@ -21,7 +26,10 @@ export default {
   },
   plugins: [
     clear({targets: ['dist']}),
-    screeps({
+    resolve(),
+    commonjs(),
+    typescript2(),
+    isDeploy && screeps({
       config: {
         token: process.env.TOKEN,
         protocol: process.env.PROTOCOL || 'https',
@@ -32,5 +40,5 @@ export default {
       },
       dryRun: false
     })
-  ]
+  ].filter(Boolean)
 }
