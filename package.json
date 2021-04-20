@@ -1,0 +1,30 @@
+{
+  "name": "screeps",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RhysXia/screeps.git"
+  },
+  "keywords": [
+    "screeps"
+  ],
+  "author": "Rhys Xia",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/RhysXia/screeps/issues"
+  },
+  "homepage": "https://github.com/RhysXia/screeps#readme",
+  "devDependencies": {
+    "@types/screeps": "^3.2.2",
+    "dotenv": "^8.2.0",
+    "rollup": "^2.45.2",
+    "rollup-plugin-clear": "^2.0.7",
+    "rollup-plugin-screeps": "^1.0.1",
+    "typescript": "^4.2.4"
+  }
+}
