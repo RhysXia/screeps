@@ -17,15 +17,7 @@ const roleMap: Record<
   upgrader: Harvester,
 };
 
-declare global {
-  interface CreepMemory {
-    role: RoleName;
-  }
 
-  interface Creep {
-    role: AbstractRole;
-  }
-}
 
 const createRole = (roleName: RoleName) => {
   const Role = roleMap[roleName];
