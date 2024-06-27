@@ -1,4 +1,5 @@
 node_modules
 dist
-.env.local
+*.local
 .package-lock.json
+.pnpm-lock.json

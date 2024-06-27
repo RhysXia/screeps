@@ -1,10 +1,4 @@
 export const loop = () => {
-  if (Object.keys(Game.creeps).length < 3) {
-    const name = Object.keys(Game.spawns)[0];
-    const id = Date.now().toString().slice(-4);
-    Game.spawns[name].spawnCreep([WORK, MOVE, CARRY], `haverster${id}`);
-  }
-
   for (const name in Game.creeps) {
     const creep = Game.creeps[name];
     const sources = Game.rooms[0].find(FIND_SOURCES);

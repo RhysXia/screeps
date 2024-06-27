@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ES2017",
     "moduleResolution": "Node",
-    "baseUrl": "./",
+    "baseUrl": "src/",
+    "sourceMap": true,
     "allowSyntheticDefaultImports": true
   },
   "exclude": ["node_modules"],

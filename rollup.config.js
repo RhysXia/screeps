@@ -1,44 +1,76 @@
-import dotenv from 'dotenv'
-import clear from 'rollup-plugin-clear'
-import screeps from 'rollup-plugin-screeps'
-import typescript2 from 'rollup-plugin-typescript2'
-import commonjs from '@rollup/plugin-commonjs'
-import resolve from '@rollup/plugin-node-resolve'
+import dotenv from "dotenv";
+import clear from "rollup-plugin-clear";
+import screeps from "rollup-plugin-screeps";
+import typescript2 from "rollup-plugin-typescript2";
+import commonjs from "@rollup/plugin-commonjs";
+import resolve from "@rollup/plugin-node-resolve";
+import copy from "rollup-plugin-copy";
+import fs from "fs";
 
-const {error} = dotenv.config({
-  path: '.env.local'
-})
+const { error } = dotenv.config({
+  path: [".env", ".env.local"],
+});
 
-if(error) {
-  console.error(error)
+if (error) {
+  console.error(error);
 }
 
-console.log(process.env.TARGET)
+const target = process.env.TARGET;
 
-const isDeploy = process.env.TARGET === 'deploy'
+const deployPlugins = [];
 
-export default {
-  input: 'src/main.ts',
-  output: {
-    file: 'dist/main.js',
-    format: 'cjs',
-    sourcemap: true
-  },
-  plugins: [
-    clear({targets: ['dist']}),
-    resolve(),
-    commonjs(),
-    typescript2(),
-    isDeploy && screeps({
+if (target === "DEPLOY") {
+  deployPlugins.push(
+    screeps({
       config: {
         token: process.env.TOKEN,
-        protocol: process.env.PROTOCOL || 'https',
-        hostname: process.env.HOSTNAME || 'screeps.com',
+        protocol: process.env.PROTOCOL || "https",
+        hostname: process.env.HOSTNAME || "screeps.com",
         port: parseInt(process.env.PORT) || 443,
-        path: '/',
-        branch: process.env.BRANCH || 'auto'
+        path: "/",
+        branch: process.env.BRANCH || "auto",
       },
-      dryRun: false
+      dryRun: false,
     })
-  ].filter(Boolean)
+  );
+} else if (target) {
+  if (!fs.statSync(target).isDirectory()) {
+    console.error(`Could not find dir ${target}`);
+  } else {
+    deployPlugins.push(
+      copy({
+        targets: [
+          {
+            src: "dist/main.js",
+            dest: target,
+          },
+          {
+            src: "dist/main.js.map",
+            dest: target,
+            rename: (name) => name + ".map.js",
+            transform: (contents) => `module.exports = ${contents.toString()};`,
+          },
+        ],
+      })
+    );
+  }
 }
+
+/** @type {import('rollup').RollupOptions} */
+export default {
+  input: "src/main.ts",
+  output: {
+    file: "dist/main.js",
+    format: "cjs",
+    sourcemap: true,
+  },
+  plugins: [
+    clear({ targets: ["dist"] }),
+    resolve(),
+    commonjs(),
+    typescript2({
+      tsconfig: "./tsconfig.json",
+    }),
+    ...deployPlugins,
+  ],
+};
