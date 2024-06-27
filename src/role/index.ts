@@ -1,28 +1,50 @@
 import { Harvester } from "./Harvester";
-import { AbstractRole } from "./AbstractRole";
+import { RoleClass, RoleName } from "./types";
 
-
-const roleMap: Record<
-  RoleName,
-  {
-    new (creep: Creep): AbstractRole;
-    create(): Creep;
-  }
-> = {
-  harvester: Harvester,
+export const roleClassMap: Record<RoleName, RoleClass> = {
   builder: Harvester,
   collector: Harvester,
+  harvester: Harvester,
   miner: Harvester,
   repairer: Harvester,
   upgrader: Harvester,
 };
 
+export const initialize = () => {
+  if (global.isRoleInited) {
+    return;
+  }
 
+  global.isRoleInited = true;
 
-const createRole = (roleName: RoleName) => {
-  const Role = roleMap[roleName];
+  Object.defineProperty(Creep.prototype, "role", {
+    get() {
+      const role = this._role;
+      if (role) {
+        return role;
+      }
+      const creep = this as Creep;
 
-  const creep = Role.create();
+      const roleName = creep.memory.role;
 
-  const role = new Role(creep);
+      if (!roleName) {
+        console.error(`unknown creep role: ${creep.name}`);
+      }
+
+      const RoleClass = roleClassMap[roleName];
+
+      const newRole = new RoleClass(creep);
+
+      this._role = newRole;
+
+      return newRole;
+    },
+  });
+};
+
+export const run = () => {
+  for (const name in Game.creeps) {
+    const creep = Game.creeps[name];
+    creep.role.run();
+  }
 };

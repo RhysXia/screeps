@@ -1,13 +1,6 @@
-import { AbstractRole } from "./AbstractRole";
+import { Role } from "./Role";
 import { RoleName } from "./types";
 
-export class Harvester extends AbstractRole {
-   roleName = ''
+export class Harvester extends Role {
   run(): void {}
-
-}
-
-Harvester.create = () => {
-
-    return Game.spawns.name.spawnCreep([], 'a', )
 }

@@ -1,3 +1,5 @@
+import { Role } from "./Role";
+
 export type RoleName =
   | "harvester" // 采集者
   | "collector" // 收集者
@@ -6,12 +8,20 @@ export type RoleName =
   | "builder" // 建造者
   | "repairer"; // 修理者
 
+export type RoleClass = {
+  new (creep: Creep): Role;
+};
+
 declare global {
   interface CreepMemory {
     role: RoleName;
   }
 
   interface Creep {
-    //   role: AbstractRole;
+    role: Role;
   }
+}
+
+declare global {
+  var isRoleInited: boolean | undefined;
 }
