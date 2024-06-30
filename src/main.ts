@@ -1,39 +1,49 @@
-import { ScreepsModule } from "types/interfaces";
+import { LifecycleName, ScreepsModule, sortModules } from "core/module";
 
-// const modules: Array<ScreepsModule> = [];
+const modules: Array<ScreepsModule> = [];
 
-// modules.forEach((it) => it.initialize?.());
+const sortedModules = sortModules(modules);
 
-// export const loop = () => {
-//   modules.forEach((it) => it.preProcess?.());
+const initializeContextMap = invokeModules(sortedModules, "initialize");
 
-//   modules.forEach((it) => it.process?.());
+export const loop = () => {
+  const preProcessContextMap = invokeModules(
+    sortedModules,
+    "preProcess",
+    initializeContextMap
+  );
 
-//   modules.forEach((it) => it.postProcess?.());
-// };
+  const processContextMap = invokeModules(
+    sortedModules,
+    "process",
+    preProcessContextMap
+  );
 
-const initializeModule = (modules: Array<ScreepsModule>) => {
-  const willInitedModules: Array<ScreepsModule> = [];
-  const initedModules: Array<ScreepsModule> = [];
+  invokeModules(sortedModules, "process", processContextMap);
+};
+
+function invokeModules(
+  modules: Array<ScreepsModule>,
+  fnName: LifecycleName,
+  prevContextMap?: Map<string, Record<string, any>>
+) {
+  const contextMap = new Map<string, Record<string, any>>();
 
   modules.forEach((it) => {
+    const context: Record<string, Record<string, any>> = {};
 
-    if(initedModules.includes(it)) {
-      return
-    }
-
-    if(willInitedModules.includes(it)) {
-      throw new Error(`There may be circular dependencies between modules: `)
-    }
-
-    const deps = it.deps || [];
-    deps.forEach((it) => {
-      if (initedModules.includes(it)) {
-        return;
-      }
-
-      it.initialize?.();
-      initedModules.push(it);
+    (it.inject || []).forEach((dep) => {
+      const prevContext = prevContextMap?.get(dep);
+      const currentContext = contextMap.get(dep);
+      context[dep] = {
+        ...prevContext,
+        ...currentContext,
+      };
     });
+
+    // @ts-ignore
+    contextMap.set(it.name, it[fnName]?.(context));
   });
-};
+
+  return contextMap;
+}

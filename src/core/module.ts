@@ -75,8 +75,8 @@ export type ExtractScreepModuleInject<
     };
 
 export type ScreepsModule<
-  MI extends ModuleInject,
-  ME extends ModuleExport
+  MI extends ModuleInject = ModuleInject,
+  ME extends ModuleExport = ModuleExport
 > = ExtractScreepModuleInject<MI> &
   ExtractLifecycle<MI, ME> & {
     /**
@@ -91,3 +91,53 @@ export const defineScreepModule = <
 >(
   module: ScreepsModule<MI, ME>
 ) => module;
+
+export const sortModules = (modules: Array<ScreepsModule>) => {
+  const willInitedModuleNames: Set<string> = new Set();
+  const initedModules: Array<
+    ScreepsModule & {
+      injectIndexes: Array<number>;
+    }
+  > = [];
+
+  const sortModule = (module: ScreepsModule): number => {
+    if (willInitedModuleNames.has(module.name)) {
+      throw new Error(`There may be circular dependencies between modules: `);
+    }
+
+    // 已经 init 了
+    if (initedModules.some((it) => it.name === module.name)) {
+      return;
+    }
+
+    const inject = module.inject || [];
+
+    const injectIndexes: Array<number> = [];
+
+    willInitedModuleNames.add(module.name);
+
+    inject.forEach((name) => {
+      const injectModule = modules.find((it) => it.name === name);
+
+      if (!injectModule) {
+        throw new Error(
+          `Could not found inject [${name}] in module [${module.name}]`
+        );
+      }
+      const index = sortModule(injectModule);
+      injectIndexes.push(index);
+    });
+
+    willInitedModuleNames.delete(module.name);
+
+    initedModules.push({ injectIndexes, ...module });
+
+    return initedModules.length - 1;
+  };
+
+  modules.forEach((it) => {
+    sortModule(it);
+  });
+
+  return initedModules;
+};

@@ -6,5 +6,5 @@ export type CreepModuleExport = {
 
 const creep = defineScreepModule<{}, CreepModuleExport>({
     name: 'creep',
-    
+    initialize()
 })
