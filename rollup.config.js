@@ -8,7 +8,8 @@ import copy from "rollup-plugin-copy";
 import fs from "fs";
 
 const { error } = dotenv.config({
-  path: [".env", ".env.local"],
+  override: true,
+  path: [".env", fs.existsSync('.env.local') && ".env.local"].filter(Boolean),
 });
 
 if (error) {
@@ -39,6 +40,8 @@ if (target === "DEPLOY") {
   } else {
     deployPlugins.push(
       copy({
+        hook: 'writeBundle',
+        verbose: true,
         targets: [
           {
             src: "dist/main.js",

@@ -1,15 +1,3 @@
-import { Task } from "../../types";
-
-declare global {
-  interface Memory {
-    creepTasks: Array<{
-      name: string;
-      room: string;
-      bodies: Array<BodyPartConstant>;
-    }>;
-  }
-}
-
 export enum CreepTaskAddCode {
   OK,
 }
@@ -21,9 +9,10 @@ export enum CreepTaskRemoveCode {
 
 export enum CreepTaskResultCode {
   OK,
+  ERR_EXIST,
 }
 
-export class CreepTask implements Task {
+export class CreepTask {
   private listeners: Set<(name: string, result: CreepTaskResultCode) => void>;
 
   constructor() {
@@ -38,6 +27,10 @@ export class CreepTask implements Task {
   }
 
   addTask(name: string, roomName: string, bodies: Array<BodyPartConstant>) {
+    if (this.tasks.some((it) => it.name === name)) {
+      return CreepTaskAddCode.OK;
+    }
+
     this.tasks.push({
       name,
       room: roomName,
@@ -63,18 +56,21 @@ export class CreepTask implements Task {
     return CreepTaskRemoveCode.OK;
   }
 
+  hungTask(name: string) {
+    const i = this.tasks.findIndex((it) => it.name === name);
+    if (i < 0) {
+      return;
+    }
+    const task = this.tasks[i];
+    this.tasks.splice(i, 1);
+    this.tasks.push(task);
+  }
+
   registerListener(fn: (name: string, result: CreepTaskResultCode) => void) {
     this.listeners.add(fn);
   }
 
-  loop() {
-    const tasks = Memory.creepTasks || [];
-    if (!tasks.length) {
-      return;
-    }
-
-    const { name, room, bodies } = tasks.pop();
-
-    const spawns = _.filter(Game.spawns, (it) => it.room.name === room);
+  _trigger(name: string, result: CreepTaskResultCode) {
+    this.listeners.forEach((it) => it(name, result));
   }
 }

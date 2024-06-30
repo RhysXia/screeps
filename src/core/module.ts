@@ -35,15 +35,17 @@ export type ExtractLifecycleName<MI extends ModuleInject> = MI extends Record<
 export type ExreactLifecycleContext<
   LN extends LifecycleName,
   MI extends ModuleInject
-> = {
-  [K in keyof MI as LN extends keyof MI[K] ? K : never]: MI[K][LN];
-} & (LN extends "preProcess"
-  ? ExreactLifecycleContext<"initialize", MI>
-  : LN extends "process"
-  ? ExreactLifecycleContext<"preProcess", MI>
-  : LN extends "postProcess"
+> = LN extends "postProcess"
   ? ExreactLifecycleContext<"process", MI>
-  : {});
+  : {
+      [K in keyof MI as LN extends keyof MI[K] ? K : never]: MI[K][LN];
+    } & (LN extends "preProcess"
+      ? ExreactLifecycleContext<"initialize", MI>
+      : LN extends "process"
+      ? ExreactLifecycleContext<"preProcess", MI>
+      : // : LN extends "postProcess"
+        // ? ExreactLifecycleContext<"process", MI>
+        {});
 
 export type ExtractLifecycle<
   MI extends ModuleInject,
@@ -94,13 +96,9 @@ export const defineScreepModule = <
 
 export const sortModules = (modules: Array<ScreepsModule>) => {
   const willInitedModuleNames: Set<string> = new Set();
-  const initedModules: Array<
-    ScreepsModule & {
-      injectIndexes: Array<number>;
-    }
-  > = [];
+  const initedModules: Array<ScreepsModule> = [];
 
-  const sortModule = (module: ScreepsModule): number => {
+  const sortModule = (module: ScreepsModule) => {
     if (willInitedModuleNames.has(module.name)) {
       throw new Error(`There may be circular dependencies between modules: `);
     }
@@ -112,8 +110,6 @@ export const sortModules = (modules: Array<ScreepsModule>) => {
 
     const inject = module.inject || [];
 
-    const injectIndexes: Array<number> = [];
-
     willInitedModuleNames.add(module.name);
 
     inject.forEach((name) => {
@@ -124,13 +120,12 @@ export const sortModules = (modules: Array<ScreepsModule>) => {
           `Could not found inject [${name}] in module [${module.name}]`
         );
       }
-      const index = sortModule(injectModule);
-      injectIndexes.push(index);
+      sortModule(injectModule);
     });
 
     willInitedModuleNames.delete(module.name);
 
-    initedModules.push({ injectIndexes, ...module });
+    initedModules.push(module);
 
     return initedModules.length - 1;
   };
