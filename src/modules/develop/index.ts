@@ -52,6 +52,7 @@ const develop = defineScreepModule<
         const harversters = Object.values(Memory.creepConfig).filter(
           (it) => it.role === Role.HARVERSTER && it.room === room.name
         ).length;
+        
         if (harversters < sources.length) {
           const name = `${room.name}_harverster_${Game.time}`;
           ctx.creep.creepTask.addTask(name, room.name, [WORK, CARRY, MOVE]);
