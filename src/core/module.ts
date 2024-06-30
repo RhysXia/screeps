@@ -2,25 +2,26 @@ import { EmptyObject, UnionToIntersection, UnionToTuple } from "types/utils";
 
 export type LifecycleName =
   /**
-   * 初始化，在 loop 前全局执行一次
-   * @returns 返回可以被其他 module 使用的数据/方法等
+   * 绑定阶段，在loop前执行，主要用来初始化一些变量，可能会执行多次
+   */
+  | "binding"
+  /**
+   * 初始化，只会执行一次, 第一次 binding 后执行
    */
   | "initialize"
   /**
-   * 预处理，在正式执行前执行
-   */
-  | "preProcess"
-  /**
-   * 执行，在所有的 preProcess 执行后再执行
+   * 执行，initialize 后再执行
    */
   | "process"
   /**
-   * 后处理，在所有的 process 执行后再执行
+   * 后处理，process 后再执行
    */
   | "postProcess";
 
+export type ExcludeInitializeLifecycle = Exclude<LifecycleName, "initialize">;
+
 export type ModuleExport = {
-  [K in LifecycleName]?: Record<string, any>;
+  [K in ExcludeInitializeLifecycle]?: Record<string, any>;
 };
 
 export type ModuleInject = Record<string, ModuleExport>;
@@ -37,23 +38,24 @@ export type ExreactLifecycleContext<
   MI extends ModuleInject
 > = LN extends "postProcess"
   ? ExreactLifecycleContext<"process", MI>
-  : {
-      [K in keyof MI as LN extends keyof MI[K] ? K : never]: MI[K][LN];
-    } & (LN extends "preProcess"
-      ? ExreactLifecycleContext<"initialize", MI>
-      : LN extends "process"
-      ? ExreactLifecycleContext<"preProcess", MI>
-      : // : LN extends "postProcess"
-        // ? ExreactLifecycleContext<"process", MI>
-        {});
+  : LN extends "initialize"
+  ? ExreactLifecycleContext<"binding", MI>
+  : (LN extends "process" ? ExreactLifecycleContext<"binding", MI> : {}) & {
+      [K in keyof MI as LN extends keyof MI[K]
+        ? K
+        : never]: LN extends keyof MI[K] ? MI[K][LN] : never;
+    };
 
 export type ExtractLifecycle<
   MI extends ModuleInject,
   ME extends ModuleExport,
-  MEK extends keyof ME = keyof ME,
+  MEK extends Extract<ExcludeInitializeLifecycle, keyof ME> = Extract<
+    ExcludeInitializeLifecycle,
+    keyof ME
+  >,
   LN extends Exclude<LifecycleName, MEK> = Exclude<LifecycleName, MEK>
 > = {
-  [K in MEK]: K extends LifecycleName
+  [K in MEK]: K extends ExcludeInitializeLifecycle
     ? ExreactLifecycleContext<K, MI> extends EmptyObject
       ? () => ME[K]
       : (ctx: ExreactLifecycleContext<K, MI>) => ME[K]

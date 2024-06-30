@@ -1,35 +1,30 @@
 import { ErrorMapper } from "core/errorMapping";
 import { LifecycleName, ScreepsModule, sortModules } from "core/module";
-import creep from "modules/creep";
-import develop from "modules/develop";
+import creepTask from "modules/creepTask";
+import baseDevelop from "modules/baseDevelop";
 
-const modules = [creep, develop] as Array<ScreepsModule>;
+const modules = [creepTask, baseDevelop] as Array<ScreepsModule>;
 
-let sortedModules: Array<ScreepsModule>;
-let initializeContextMap: Map<string, Record<string, any>>;
+let sortedModules = sortModules(modules);
+
+let bindedContextMap = invokeModules(sortedModules, "binding");
+
 /**
  * 执行过程：
  * 如果 a -> b -> c
- * 则 preProcess 顺序 a -> b -> c
  * process 顺序 a -> b -> c
  * postProcess 顺序 c -> b -> a
  */
 export const loop = ErrorMapper.wrapLoop(() => {
-  if (!sortedModules) {
-    sortedModules = sortModules(modules);
-    initializeContextMap = invokeModules(sortedModules, "initialize");
+  if (!Memory.isInited) {
+    invokeModules(sortedModules, "initialize", bindedContextMap);
+    Memory.isInited = true;
   }
-
-  const preProcessContextMap = invokeModules(
-    sortedModules,
-    "preProcess",
-    initializeContextMap
-  );
 
   const processContextMap = invokeModules(
     sortedModules,
     "process",
-    preProcessContextMap
+    bindedContextMap
   );
 
   for (let i = sortedModules.length - 1; i > -1; i--) {
@@ -49,7 +44,7 @@ export const loop = ErrorMapper.wrapLoop(() => {
 
 function invokeModules(
   modules: Array<ScreepsModule>,
-  fnName: Omit<LifecycleName, "postProcess">,
+  fnName: LifecycleName,
   prevContextMap?: Map<string, Record<string, any>>
 ) {
   const contextMap = new Map<string, Record<string, any>>();
