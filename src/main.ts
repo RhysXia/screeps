@@ -1,13 +1,12 @@
+import { ErrorMapper } from "core/errorMapping";
 import { LifecycleName, ScreepsModule, sortModules } from "core/module";
 import creep from "modules/creep";
 import develop from "modules/develop";
 
 const modules = [creep, develop] as Array<ScreepsModule>;
 
-const sortedModules = sortModules(modules);
-
-const initializeContextMap = invokeModules(sortedModules, "initialize");
-
+let sortedModules: Array<ScreepsModule>;
+let initializeContextMap: Map<string, Record<string, any>>;
 /**
  * 执行过程：
  * 如果 a -> b -> c
@@ -15,7 +14,12 @@ const initializeContextMap = invokeModules(sortedModules, "initialize");
  * process 顺序 a -> b -> c
  * postProcess 顺序 c -> b -> a
  */
-export const loop = () => {
+export const loop = ErrorMapper.wrapLoop(() => {
+  if (!sortedModules) {
+    sortedModules = sortModules(modules);
+    initializeContextMap = invokeModules(sortedModules, "initialize");
+  }
+
   const preProcessContextMap = invokeModules(
     sortedModules,
     "preProcess",
@@ -41,7 +45,7 @@ export const loop = () => {
     // @ts-ignore
     module.postProcess?.(context);
   }
-};
+});
 
 function invokeModules(
   modules: Array<ScreepsModule>,

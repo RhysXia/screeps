@@ -19,6 +19,9 @@
     "url": "https://github.com/RhysXia/screeps/issues"
   },
   "homepage": "https://github.com/RhysXia/screeps#readme",
+  "dependencies": {
+    "source-map": "^0.6.1"
+  },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^18.1.0",
     "@rollup/plugin-node-resolve": "^11.2.1",

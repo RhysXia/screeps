@@ -48,7 +48,7 @@ const creep = defineScreepModule<{}, CreepModuleExport>({
         }
       }
 
-      if (!isSpawning) {
+      if (isSpawning) {
         tasks.splice(i, 1);
       }
     });
