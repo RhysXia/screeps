@@ -1,27 +1,27 @@
-import { CreepTaskAddTask } from "modules/creepTask";
+import { CreepSpawnFn } from "modules/creepSpawn";
 import baseDevelop from ".";
 
 export enum RoleName {
   /**
    * 采集者
    */
-  HARVERSTER,
+  HARVERSTER = "harverster",
   /**
    * 收集者
    */
-  COLLECTOR,
+  COLLECTOR = "collector",
   /**
    * 升级者
    */
-  UPGRADER,
+  UPGRADER = "upgrader",
   /**
    * 建造者
    */
-  BUILDER,
+  BUILDER = "builder",
   /**
    * 维修着
    */
-  REPAIRER,
+  REPAIRER = "repairer",
 }
 
 export type BaseDevelopModule = typeof baseDevelop;
@@ -42,10 +42,6 @@ export type CreepConfigItem<
 } & T;
 
 declare global {
-  interface CreepMemory {
-    role: RoleName;
-  }
-
   interface Memory {
     creepConfig: Record<string, CreepConfigItem>;
   }

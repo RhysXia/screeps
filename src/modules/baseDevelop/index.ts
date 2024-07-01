@@ -1,5 +1,9 @@
 import { defineScreepModule } from "core/module";
-import { CreepModuleExport, CreepTaskCode } from "modules/creepTask";
+import {
+  CreepSpawnModuleExport,
+  CreepSpawnCode,
+  moduleName as creepSpawnModuleName,
+} from "modules/creepSpawn";
 import { RoleName, Role } from "./types";
 import harverster from "./roles/harverster";
 import context from "./context";
@@ -13,24 +17,18 @@ const roles: Record<RoleName, Role> = {
 
 const baseDevelop = defineScreepModule<
   {
-    creepTask: CreepModuleExport;
+    [creepSpawnModuleName]: CreepSpawnModuleExport;
   },
   DevelopModuleExport
 >({
   name: "baseDevelop",
-  inject: ["creepTask"],
-  binding({ creepTask: { listenTask, addTask } }) {
-    listenTask((name, result) => {
-      if (result === ERR_NAME_EXISTS) {
-        return;
-      }
-      if (result !== CreepTaskCode.OK) {
-        delete Memory.creepConfig[name];
-        return;
-      }
-      Memory.creepConfig[name].spwaning = false;
+  inject: [creepSpawnModuleName],
+  binding({ [creepSpawnModuleName]: { spawn, onSpawn } }) {
+    context.setCreepSpawn(spawn);
+
+    onSpawn((name, result) => {
+      context.onSpawn(name, result);
     });
-    context.setAddTask(addTask);
   },
   initialize() {
     if (!Memory.creepConfig) {
@@ -39,13 +37,15 @@ const baseDevelop = defineScreepModule<
     Object.values(roles).forEach((it) => it.create());
   },
   process() {
+    // 刷新context
+    context.refresh();
     Object.keys(Memory.creepConfig).forEach((it) => {
       const creep = Game.creeps[it];
-      // creep 不存在， 同时没有孵化，大概率挂掉了
       if (Memory.creepConfig[it].spwaning) {
         return;
       }
 
+      // creep 不存在， 同时没有孵化，大概率挂掉了
       if (!creep) {
         delete Memory.creepConfig[it];
         return;

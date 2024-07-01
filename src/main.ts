@@ -1,9 +1,11 @@
 import { ErrorMapper } from "core/errorMapping";
 import { LifecycleName, ScreepsModule, sortModules } from "core/module";
-import creepTask from "modules/creepTask";
+import room from "modules/room";
+import spawn from "modules/spawn";
+import creepSpawn from "modules/creepSpawn";
 import baseDevelop from "modules/baseDevelop";
 
-const modules = [creepTask, baseDevelop] as Array<ScreepsModule>;
+const modules = [room, spawn, creepSpawn, baseDevelop] as Array<ScreepsModule>;
 
 let sortedModules: Array<ScreepsModule>;
 
@@ -43,7 +45,7 @@ export const loop = ErrorMapper.wrapLoop(() => {
     });
 
     // @ts-ignore
-    module.postProcess?.(context);
+    module.postProcess?.(bindingContextThis(context, module));
   }
 });
 
@@ -64,7 +66,7 @@ function invokeModules(
     });
 
     // @ts-ignorex
-    const currentContext = it[fnName]?.(context) as
+    const currentContext = it[fnName]?.(bindingContextThis(context, it)) as
       | Record<string, any>
       | undefined;
 
@@ -75,4 +77,26 @@ function invokeModules(
   });
 
   return contextMap;
+}
+
+function bindingContextThis(
+  context: Record<string, any>,
+  module: ScreepsModule
+) {
+  const thisContext = {
+    targetModuleName: module.name,
+  };
+
+  const newContext: Record<string, any> = {};
+  Object.keys(context).forEach((key) => {
+    const value = context[key];
+    if (typeof value === "function") {
+      newContext[key] = (...args: any) =>
+        (value as Function).call(thisContext, ...args);
+    } else {
+      newContext[key] = value;
+    }
+  });
+
+  return newContext;
 }

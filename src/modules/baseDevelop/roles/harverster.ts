@@ -1,10 +1,12 @@
 import context from "../context";
 import { Role, RoleName } from "../types";
 
-const harverster: Role<{
+type ConfigData = {
   sourceId: Source["id"];
   targetId?: ConstructionSite["id"] | StructureContainer["id"];
-}> = {
+};
+
+const harverster: Role<ConfigData> = {
   create() {
     _.forEach(Game.spawns, (spawn) => {
       const room = spawn.room;
@@ -21,15 +23,12 @@ const harverster: Role<{
         })
         .filter(Boolean);
 
-      sources.forEach((s, i) => {
-        const name = `${room.name}_harverster_${i}${Game.time}`;
-        Memory.creepConfig[name] = {
-          role: RoleName.HARVERSTER,
-          room: room.name,
-          sourceId: s.sourceId,
-          spwaning: true,
-        };
-        context.addTask(name, room.name, [WORK, CARRY, MOVE]);
+      sources.forEach((s) => {
+        const config = context.creepSpawn<ConfigData>(
+          RoleName.HARVERSTER,
+          room.name
+        );
+        config.sourceId = s.sourceId;
       });
     });
   },
@@ -139,7 +138,7 @@ const harverster: Role<{
       // 快挂了，扔掉资源
       if (creep.ticksToLive < 2) {
         creep.drop(RESOURCE_ENERGY);
-        context.addTask(creep.name, config.room, [WORK, CARRY, MOVE]);
+        context.creepRespawn(creep.name);
       }
     },
   ],

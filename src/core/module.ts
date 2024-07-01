@@ -46,6 +46,16 @@ export type ExreactLifecycleContext<
         : never]: LN extends keyof MI[K] ? MI[K][LN] : never;
     };
 
+export type ModuleExportFunctionContext = {
+  targetModuleName: string;
+};
+
+export type BindThisForRecord<T extends Record<string, any>> = {
+  [K in keyof T]: T[K] extends (...args: infer P) => infer R
+    ? (this: ModuleExportFunctionContext, ...args: P) => R
+    : T[K];
+};
+
 export type ExtractLifecycle<
   MI extends ModuleInject,
   ME extends ModuleExport,
@@ -57,8 +67,8 @@ export type ExtractLifecycle<
 > = {
   [K in MEK]: K extends ExcludeInitializeLifecycle
     ? ExreactLifecycleContext<K, MI> extends EmptyObject
-      ? () => ME[K]
-      : (ctx: ExreactLifecycleContext<K, MI>) => ME[K]
+      ? () => BindThisForRecord<ME[K]>
+      : (ctx: ExreactLifecycleContext<K, MI>) => BindThisForRecord<ME[K]>
     : never;
 } & {
   [K in LN]?: ExreactLifecycleContext<K, MI> extends never
