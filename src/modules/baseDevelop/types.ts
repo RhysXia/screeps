@@ -1,3 +1,4 @@
+import { CreepTaskAddTask } from "modules/creepTask";
 import baseDevelop from ".";
 
 export enum RoleName {
@@ -25,11 +26,19 @@ export enum RoleName {
 
 export type BaseDevelopModule = typeof baseDevelop;
 
-export type Role = {
-  prepare?(creep: Creep): boolean;
-  source?(creep: Creep): boolean;
-  target?(creep): boolean;
+export type Role<T extends Record<string, any> = Record<string, any>> = {
+  create(createCreep: CreepTaskAddTask): void;
+  prepare?(creep: Creep, config: CreepConfigItem<T>): boolean;
+  plans: Array<(creep: Creep, config: CreepConfigItem<T>) => void | number>;
 };
+
+export type CreepConfigItem<
+  T extends Record<string, any> = Record<string, any>
+> = {
+  role: RoleName;
+  room: string;
+  cursor?: number;
+} & T;
 
 declare global {
   interface CreepMemory {
@@ -37,17 +46,7 @@ declare global {
   }
 
   interface Memory {
-    creepConfig: Record<
-      string,
-      {
-        role: RoleName;
-        room: string;
-        ready?: boolean;
-        sourceId: Source["id"] | Structure["id"];
-        targetId?: Structure["id"];
-        isTarget?: boolean;
-      }
-    >;
+    creepConfig: Record<string, CreepConfigItem>;
   }
 
   interface Creep {}

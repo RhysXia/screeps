@@ -5,9 +5,9 @@ import baseDevelop from "modules/baseDevelop";
 
 const modules = [creepTask, baseDevelop] as Array<ScreepsModule>;
 
-let sortedModules = sortModules(modules);
+let sortedModules: Array<ScreepsModule>;
 
-let bindedContextMap = invokeModules(sortedModules, "binding");
+let bindedContextMap: Map<string, Record<string, any>>;
 
 /**
  * 执行过程：
@@ -16,6 +16,11 @@ let bindedContextMap = invokeModules(sortedModules, "binding");
  * postProcess 顺序 c -> b -> a
  */
 export const loop = ErrorMapper.wrapLoop(() => {
+  if (!sortedModules) {
+    sortedModules = sortModules(modules);
+    bindedContextMap = invokeModules(sortedModules, "binding");
+  }
+
   if (!Memory.isInited) {
     invokeModules(sortedModules, "initialize", bindedContextMap);
     Memory.isInited = true;

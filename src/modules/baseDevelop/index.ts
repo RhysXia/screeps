@@ -48,18 +48,31 @@ const baseDevelop = defineScreepModule<
 
       const role = roles[config.role];
 
-      if (!config.ready) {
-        config.ready = role.prepare?.(creep) ?? true;
+      if (config.cursor === undefined) {
+        config.cursor = role.prepare?.(creep, config) ?? true ? 0 : undefined;
       }
 
-      if (!config.ready) {
+      const cursor = config.cursor;
+
+      if (cursor === undefined) {
         return;
       }
 
-      if (config.isTarget) {
-        config.isTarget = role.target?.(creep);
-      } else {
-        config.isTarget = !role.source?.(creep);
+      const plan = role.plans[cursor];
+
+      if (!plan) {
+        console.error(
+          `no plan(cursor: ${cursor}) found in role(${config.role})`
+        );
+        return;
+      }
+
+      const ret = plan(creep, config);
+
+      if (typeof ret === "number") {
+        const newCursor =
+          (ret + cursor + role.plans.length) % role.plans.length;
+        config.cursor = newCursor;
       }
     });
   },
