@@ -23,11 +23,11 @@ export default defineScreepModule<
     return {
       getSpawnIdsByRoom(room) {
         const spawnIds = getRoomConfig<RoomConfig>(room);
-        return spawnIds;
+        return spawnIds || [];
       },
     };
   },
-  process({ [roomModuleName]: { setRoomConfig } }) {
+  initialize({ [roomModuleName]: { setRoomConfig } }) {
     const map = new Map<string, RoomConfig>();
     for (const name in Game.spawns) {
       const spawn = Game.spawns[name];

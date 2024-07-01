@@ -8,7 +8,8 @@ const bodiesMap: Record<RoleName, Array<BodyPartConstant>> = {
 
 class Context {
   private _creepSpawn: CreepSpawnFn;
-  private i: number;
+  private i = 0;
+
 
   refresh() {
     this.i = 0;
@@ -34,7 +35,7 @@ class Context {
     if (!config) {
       throw new Error(`could not found creep(${name})`);
     }
-    this._creepSpawn(name, config.room, bodiesMap[config.role]);
+    this._creepSpawn(config.room, name, bodiesMap[config.role]);
 
     config.spwaning = true;
   }
@@ -43,9 +44,10 @@ class Context {
     role: RoleName,
     room: string
   ) {
-    const name = `${room}_${role}_${Game.time}${this.i++}`;
+    
+    const name = `${room}_${role}_${Game.time}${this.i}`;
 
-    this._creepSpawn(name, room, bodiesMap[role]);
+    this._creepSpawn(room, name, bodiesMap[role]);
 
     const config = {
       role,
@@ -54,6 +56,8 @@ class Context {
     } as CreepConfigItem<T>;
 
     Memory.creepConfig[name] = config;
+
+    this.i++
 
     return config;
   }

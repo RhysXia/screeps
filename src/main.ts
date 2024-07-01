@@ -87,15 +87,23 @@ function bindingContextThis(
     targetModuleName: module.name,
   };
 
-  const newContext: Record<string, any> = {};
-  Object.keys(context).forEach((key) => {
-    const value = context[key];
-    if (typeof value === "function") {
-      newContext[key] = (...args: any) =>
-        (value as Function).call(thisContext, ...args);
-    } else {
-      newContext[key] = value;
-    }
+  const newContext: Record<string, Record<string, any>> = {};
+  Object.keys(context).forEach((moduleName) => {
+    const injectModule = context[moduleName];
+
+    const moduleCtx: Record<string, any> = {};
+
+    Object.keys(injectModule).forEach((key) => {
+      const value = injectModule[key];
+      if (typeof value === "function") {
+        moduleCtx[key] = (...args: any) =>
+          (value as Function).call(thisContext, ...args);
+      } else {
+        moduleCtx[key] = value;
+      }
+    });
+
+    newContext[moduleName] = moduleCtx;
   });
 
   return newContext;

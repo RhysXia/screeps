@@ -70,11 +70,11 @@ export default defineScreepModule<
           throw new Error(`no StructureSpawn in room(${room})`);
         }
 
-        const config = getRoomConfig<RoomConfig>(name) || [];
+        const config = getRoomConfig<RoomConfig>(room) || [];
 
         config.push({ n: name, b: bodies.map((it) => ALL_BODIES.indexOf(it)) });
 
-        setRoomConfig<RoomConfig>(name, config);
+        setRoomConfig<RoomConfig>(room, config);
       },
     };
   },
@@ -95,7 +95,7 @@ export default defineScreepModule<
 
       for (const spawn of spawns) {
         if (spawn.spawning) {
-          return;
+          continue;
         }
 
         const task = tasks.pop();
@@ -109,6 +109,12 @@ export default defineScreepModule<
           task.n,
           {}
         );
+
+        if(code === ERR_NOT_ENOUGH_ENERGY) {
+          tasks.push(task)
+          continue
+        }
+
         callListeners(task.n, code);
       }
     }
