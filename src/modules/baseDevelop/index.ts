@@ -2,7 +2,7 @@ import { defineScreepModule } from "core/module";
 import { CreepModuleExport, CreepTaskCode } from "modules/creepTask";
 import { RoleName, Role } from "./types";
 import harverster from "./roles/harverster";
-import plan from "./plan";
+import context from "./context";
 
 export type DevelopModuleExport = {};
 
@@ -30,13 +30,13 @@ const baseDevelop = defineScreepModule<
       }
       Memory.creepConfig[name].spwaning = false;
     });
-    plan.setAddTask(addTask);
+    context.setAddTask(addTask);
   },
   initialize() {
     if (!Memory.creepConfig) {
       Memory.creepConfig = {};
     }
-    plan.refresh();
+    Object.values(roles).forEach((it) => it.create());
   },
   process() {
     Object.keys(Memory.creepConfig).forEach((it) => {
