@@ -50,6 +50,11 @@ export default defineScreepModule<{}, CreepModuleExport>({
       },
     };
   },
+  initialize() {
+    if(!Memory.creepTasks) {
+      Memory.creepTasks = [];
+    }
+  },
   postProcess() {
     const tasks = Memory.creepTasks;
 

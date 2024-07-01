@@ -38,6 +38,7 @@ export type CreepConfigItem<
   role: RoleName;
   room: string;
   cursor?: number;
+  spwaning: boolean
 } & T;
 
 declare global {

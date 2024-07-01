@@ -2,7 +2,7 @@ import { CreepTaskAddTask } from "modules/creepTask";
 import roles from "./roles";
 
 class Plan {
-  private addTask: CreepTaskAddTask;
+  addTask: CreepTaskAddTask;
 
   setAddTask(addTask: CreepTaskAddTask) {
     this.addTask = addTask;
@@ -15,4 +15,8 @@ class Plan {
   }
 }
 
-export default new Plan();
+const plan = new Plan();
+
+export default plan;
+
+global.plan = plan;

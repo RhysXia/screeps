@@ -26,7 +26,9 @@ const baseDevelop = defineScreepModule<
       }
       if (result !== CreepTaskCode.OK) {
         delete Memory.creepConfig[name];
+        return;
       }
+      Memory.creepConfig[name].spwaning = false;
     });
     plan.setAddTask(addTask);
   },
@@ -39,8 +41,17 @@ const baseDevelop = defineScreepModule<
   process() {
     Object.keys(Memory.creepConfig).forEach((it) => {
       const creep = Game.creeps[it];
+      // creep 不存在， 同时没有孵化，大概率挂掉了
+      if (Memory.creepConfig[it].spwaning) {
+        return;
+      }
+
       if (!creep) {
-        // delete Memory.creepConfig[it];
+        delete Memory.creepConfig[it];
+        return;
+      }
+
+      if (creep.spawning) {
         return;
       }
 
