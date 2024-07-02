@@ -37,7 +37,7 @@ export const loop = ErrorMapper.wrapLoop(() => {
   for (let i = sortedModules.length - 1; i > -1; i--) {
     const module = sortedModules[i];
     const context: Record<string, Record<string, any>> = {
-      self: processContextMap.get(module.name),
+      self: processContextMap.get(module.name) || {},
     };
 
     (module.inject || []).forEach((dep) => {
@@ -50,12 +50,6 @@ export const loop = ErrorMapper.wrapLoop(() => {
   }
 });
 
-const SelfLifecycleMap: Partial<Record<LifecycleName, LifecycleName>> = {
-  postProcess: "process",
-  process: "binding",
-  initialize: "binding",
-};
-
 function invokeModules(
   modules: Array<ScreepsModule>,
   fnName: LifecycleName,
@@ -65,7 +59,7 @@ function invokeModules(
 
   modules.forEach((it) => {
     const context: Record<string, Record<string, any>> = {
-      self: prevContextMap?.get?.(it.name),
+      self: prevContextMap?.get?.(it.name) || {},
     };
 
     (it.inject || []).forEach((dep) => {
