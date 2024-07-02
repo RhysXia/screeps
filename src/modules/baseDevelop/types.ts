@@ -28,7 +28,6 @@ export type BaseDevelopModule = typeof baseDevelop;
 
 export type Role<T extends Record<string, any> = Record<string, any>> = {
   create(): void;
-  prepare?(creep: Creep, config: CreepConfigItem<T>): boolean;
   plans: Array<(creep: Creep, config: CreepConfigItem<T>) => void | number>;
 };
 
@@ -37,7 +36,7 @@ export type CreepConfigItem<
 > = {
   role: RoleName;
   room: string;
-  cursor?: number;
+  cursor: number;
   spwaning: boolean;
 } & T;
 

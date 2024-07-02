@@ -60,15 +60,7 @@ const baseDevelop = defineScreepModule<
 
       const role = roles[config.role];
 
-      if (config.cursor === undefined) {
-        config.cursor = role.prepare?.(creep, config) ?? true ? 0 : undefined;
-      }
-
       const cursor = config.cursor;
-
-      if (cursor === undefined) {
-        return;
-      }
 
       const plan = role.plans[cursor];
 

@@ -32,51 +32,51 @@ const harverster: Role<ConfigData> = {
       });
     });
   },
-  prepare(creep, config) {
-    const { sourceId, targetId } = config;
+  plans: [
+    (creep, config) => {
+      const { sourceId, targetId } = config;
 
-    const source = Game.getObjectById<Source>(sourceId);
+      const source = Game.getObjectById<Source>(sourceId);
 
-    const containers = source.pos.findInRange<StructureContainer>(
-      FIND_STRUCTURES,
-      1,
-      {
-        filter: (it) => it.structureType === STRUCTURE_CONTAINER,
-      }
-    );
-
-    let target: StructureContainer | ConstructionSite | undefined;
-
-    if (containers.length) {
-      target = containers[0];
-    }
-
-    if (!target) {
-      const constructionSites = source.pos.findInRange(
-        FIND_CONSTRUCTION_SITES,
+      const containers = source.pos.findInRange<StructureContainer>(
+        FIND_STRUCTURES,
         1,
         {
           filter: (it) => it.structureType === STRUCTURE_CONTAINER,
         }
       );
 
-      if (constructionSites.length) {
-        target = constructionSites[0];
+      let target: StructureContainer | ConstructionSite | undefined;
+
+      if (containers.length) {
+        target = containers[0];
       }
-    }
 
-    if (target) {
-      config.targetId = target.id;
-    }
+      if (!target) {
+        const constructionSites = source.pos.findInRange(
+          FIND_CONSTRUCTION_SITES,
+          1,
+          {
+            filter: (it) => it.structureType === STRUCTURE_CONTAINER,
+          }
+        );
 
-    // 还没有target
-    const range = target ? 0 : 1;
+        if (constructionSites.length) {
+          target = constructionSites[0];
+        }
+      }
 
-    creep.moveTo((target || source).pos);
+      if (target) {
+        config.targetId = target.id;
+      }
 
-    return creep.pos.inRangeTo((target || source).pos, range);
-  },
-  plans: [
+      // 还没有target
+      const range = target ? 0 : 1;
+
+      creep.moveTo((target || source).pos);
+
+      return creep.pos.inRangeTo((target || source).pos, range);
+    },
     // 维护
     (creep, config) => {
       const { targetId, sourceId } = config;
@@ -84,9 +84,13 @@ const harverster: Role<ConfigData> = {
       const source = Game.getObjectById(sourceId);
 
       // 没有能量就进行采集，因为是维护阶段，所以允许采集一下工作一下
-      if (creep.store[RESOURCE_ENERGY] < creep.store.getCapacity(RESOURCE_ENERGY)) {
-        creep.harvest(source);
-        return false;
+      if (creep.store[RESOURCE_ENERGY] <= 0) {
+        const code = creep.harvest(source);
+
+        if (code === ERR_NOT_IN_RANGE) {
+          return -1;
+        }
+        return;
       }
 
       let target: ConstructionSite | StructureContainer = targetId
@@ -117,7 +121,10 @@ const harverster: Role<ConfigData> = {
 
       // 先修理
       if (target instanceof StructureContainer) {
-        creep.repair(target);
+        const code = creep.repair(target);
+        if (code === ERR_NOT_IN_RANGE) {
+          return -1;
+        }
         return target.hits >= target.hitsMax ? 1 : 0;
       }
 
@@ -129,10 +136,14 @@ const harverster: Role<ConfigData> = {
 
       const source = Game.getObjectById<Source>(sourceId);
 
-      const result = creep.harvest(source);
+      const code = creep.harvest(source);
 
-      if (result !== OK) {
-        console.error(`creep(${creep.name}) harvest error (${result})`);
+      if (code === ERR_NOT_IN_RANGE) {
+        return -2;
+      }
+
+      if (code !== OK) {
+        console.error(`creep(${creep.name}) harvest error (${code})`);
       }
 
       // 快挂了，扔掉资源

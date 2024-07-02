@@ -56,6 +56,7 @@ class Context {
       role,
       room,
       spwaning: true,
+      cursor: 0,
     } as CreepConfigItem<T>;
 
     Memory.creepConfig[name] = config;

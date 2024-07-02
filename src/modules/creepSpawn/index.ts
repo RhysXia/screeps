@@ -79,16 +79,20 @@ export default defineScreepModule<
 
         const queue = getRoomConfig<RoomConfig>(room) || [];
 
-        for (let i = 0; i < queue.length; i++) {
+        let i = 0;
+
+        for (; i < queue.length; i++) {
           const task = queue[i];
-          if (task.p <= priority) {
-            queue.splice(i, 0, {
-              n: name,
-              b: bodies.map((it) => ALL_BODIES.indexOf(it)),
-              p: priority,
-            });
+          if (priority < task.p) {
+            break;
           }
         }
+
+        queue.splice(i, 0, {
+          n: name,
+          b: bodies.map((it) => ALL_BODIES.indexOf(it)),
+          p: priority,
+        });
 
         setRoomConfig<RoomConfig>(room, queue);
       },
@@ -103,7 +107,7 @@ export default defineScreepModule<
       const queue = getRoomConfig<RoomConfig>(roomName);
 
       if (!queue || !queue.length) {
-        return;
+        continue;
       }
 
       const spawns = getSpawnIdsByRoom(roomName).map((it) =>
