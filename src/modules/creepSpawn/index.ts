@@ -99,7 +99,6 @@ export default defineScreepModule<
     };
   },
   postProcess({
-    self,
     [spawnModuleName]: { getSpawnIdsByRoom },
     [roomModuleName]: { getRoomConfig, setRoomConfig },
   }) {
@@ -130,7 +129,8 @@ export default defineScreepModule<
         const code = spawn.spawnCreep(bodies, task.n, {});
 
         if (code === ERR_NOT_ENOUGH_ENERGY) {
-          self.spawn(roomName, task.n, bodies, task.p);
+          // 资源不足，放回队列等待
+          queue.unshift(task);
           continue;
         }
 

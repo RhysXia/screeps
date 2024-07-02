@@ -1,9 +1,12 @@
 import { defineScreepModule } from "core/module";
 import {
   CreepSpawnModuleExport,
-  CreepSpawnCode,
   moduleName as creepSpawnModuleName,
 } from "modules/creepSpawn";
+import {
+  moduleName as defenderModuleName,
+  DefenderModuleExport,
+} from "modules/defender";
 import { RoleName, Role } from "./types";
 import harverster from "./roles/harverster";
 import context from "./context";
@@ -15,14 +18,17 @@ const roles: Record<RoleName, Role> = {
   [RoleName.HARVERSTER]: harverster,
 };
 
-const baseDevelop = defineScreepModule<
+export const moduleName = "baseDevelop";
+
+export default defineScreepModule<
   {
     [creepSpawnModuleName]: CreepSpawnModuleExport;
+    [defenderModuleName]: DefenderModuleExport;
   },
   DevelopModuleExport
 >({
-  name: "baseDevelop",
-  inject: [creepSpawnModuleName],
+  name: moduleName,
+  inject: [creepSpawnModuleName, defenderModuleName],
   binding({ [creepSpawnModuleName]: { spawn, onSpawn } }) {
     context.setCreepSpawn(spawn);
     context.setRoles(roles);
@@ -36,7 +42,7 @@ const baseDevelop = defineScreepModule<
     }
     context.checkAndCreateRoles();
   },
-  process() {
+  process({ [defenderModuleName]: { checkInvade } }) {
     // 刷新context
     context.update();
 
@@ -50,7 +56,8 @@ const baseDevelop = defineScreepModule<
 
       // creep 不存在， 同时没有孵化，大概率挂掉了
       if (!creep) {
-        // context.creepRespawn(it);
+        context.creepRespawn(it);
+        checkInvade(config.room);
         return;
       }
 
@@ -81,5 +88,3 @@ const baseDevelop = defineScreepModule<
     });
   },
 });
-
-export default baseDevelop;

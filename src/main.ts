@@ -4,8 +4,9 @@ import room from "modules/room";
 import spawn from "modules/spawn";
 import creepSpawn from "modules/creepSpawn";
 import baseDevelop from "modules/baseDevelop";
+import defender from "modules/defender";
 
-const modules = [room, spawn, creepSpawn, baseDevelop] as Array<ScreepsModule>;
+const modules = [room, spawn, creepSpawn, baseDevelop, defender] as Array<ScreepsModule>;
 
 let sortedModules: Array<ScreepsModule>;
 
