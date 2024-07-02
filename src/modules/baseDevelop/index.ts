@@ -50,7 +50,7 @@ const baseDevelop = defineScreepModule<
 
       // creep 不存在， 同时没有孵化，大概率挂掉了
       if (!creep) {
-        context.creepRespawn(it);
+        // context.creepRespawn(it);
         return;
       }
 

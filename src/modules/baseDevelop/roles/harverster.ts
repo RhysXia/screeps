@@ -33,6 +33,7 @@ const harverster: Role<ConfigData> = {
     });
   },
   plans: [
+    // 移动到目的地
     (creep, config) => {
       const { sourceId, targetId } = config;
 
@@ -75,7 +76,7 @@ const harverster: Role<ConfigData> = {
 
       creep.moveTo((target || source).pos);
 
-      return creep.pos.inRangeTo((target || source).pos, range);
+      return creep.pos.inRangeTo((target || source).pos, range) ? 1 : 0;
     },
     // 维护
     (creep, config) => {
