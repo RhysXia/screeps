@@ -84,7 +84,7 @@ const harverster: Role<ConfigData> = {
       const source = Game.getObjectById(sourceId);
 
       // 没有能量就进行采集，因为是维护阶段，所以允许采集一下工作一下
-      if (creep.store[RESOURCE_ENERGY] <= 0) {
+      if (creep.store[RESOURCE_ENERGY] < creep.store.getCapacity(RESOURCE_ENERGY)) {
         creep.harvest(source);
         return false;
       }

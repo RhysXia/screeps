@@ -1,5 +1,5 @@
 import { CreepSpawnFn } from "modules/creepSpawn";
-import { CreepConfigItem, RoleName } from "./types";
+import { CreepConfigItem, Role, RoleName } from "./types";
 
 // @ts-ignore
 const bodiesMap: Record<RoleName, Array<BodyPartConstant>> = {
@@ -8,15 +8,19 @@ const bodiesMap: Record<RoleName, Array<BodyPartConstant>> = {
 
 class Context {
   private _creepSpawn: CreepSpawnFn;
+  private _roles: Record<RoleName, Role>;
   private i = 0;
 
-
-  refresh() {
+  update() {
     this.i = 0;
   }
 
   setCreepSpawn(creepSpawn: CreepSpawnFn) {
     this._creepSpawn = creepSpawn;
+  }
+
+  setRoles(roles: Record<RoleName, Role>) {
+    this._roles = roles;
   }
 
   onSpawn(name: string, code: ScreepsReturnCode) {
@@ -44,7 +48,6 @@ class Context {
     role: RoleName,
     room: string
   ) {
-    
     const name = `${room}_${role}_${Game.time}${this.i}`;
 
     this._creepSpawn(room, name, bodiesMap[role]);
@@ -57,9 +60,13 @@ class Context {
 
     Memory.creepConfig[name] = config;
 
-    this.i++
+    this.i++;
 
     return config;
+  }
+
+  checkAndCreateRoles() {
+    Object.values(this._roles).forEach((it) => it.create());
   }
 }
 

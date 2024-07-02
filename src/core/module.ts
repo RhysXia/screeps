@@ -18,10 +18,8 @@ export type LifecycleName =
    */
   | "postProcess";
 
-export type ExcludeInitializeLifecycle = Exclude<LifecycleName, "initialize">;
-
 export type ModuleExport = {
-  [K in ExcludeInitializeLifecycle]?: Record<string, any>;
+  [K in LifecycleName]?: Record<string, any>;
 };
 
 export type ModuleInject = Record<string, ModuleExport>;
@@ -33,18 +31,30 @@ export type ExtractLifecycleName<MI extends ModuleInject> = MI extends Record<
   ? keyof UnionToIntersection<O>
   : never;
 
+export type ExtractLifecycleContextFromSelf<
+  LN extends LifecycleName,
+  ME extends ModuleExport
+> = LN extends "postProcess"
+  ? ME["binding"] & ME["process"]
+  : LN extends "process" | "initialize"
+  ? ME["binding"]
+  : {};
+
 export type ExreactLifecycleContext<
   LN extends LifecycleName,
-  MI extends ModuleInject
-> = LN extends "postProcess"
-  ? ExreactLifecycleContext<"process", MI>
-  : LN extends "initialize"
-  ? ExreactLifecycleContext<"binding", MI>
-  : (LN extends "process" ? ExreactLifecycleContext<"binding", MI> : {}) & {
+  MI extends ModuleInject,
+  ME extends ModuleExport
+> = {
+  self: ExtractLifecycleContextFromSelf<LN, ME>;
+} & (LN extends "postProcess"
+  ? ExreactLifecycleContext<"process", MI, ME>
+  : (LN extends "initialize" | "process"
+      ? ExreactLifecycleContext<"binding", MI, ME>
+      : {}) & {
       [K in keyof MI as LN extends keyof MI[K]
         ? K
         : never]: LN extends keyof MI[K] ? MI[K][LN] : never;
-    };
+    });
 
 export type ModuleExportFunctionContext = {
   targetModuleName: string;
@@ -59,21 +69,21 @@ export type BindThisForRecord<T extends Record<string, any>> = {
 export type ExtractLifecycle<
   MI extends ModuleInject,
   ME extends ModuleExport,
-  MEK extends Extract<ExcludeInitializeLifecycle, keyof ME> = Extract<
-    ExcludeInitializeLifecycle,
+  MEK extends Extract<LifecycleName, keyof ME> = Extract<
+    LifecycleName,
     keyof ME
   >,
   LN extends Exclude<LifecycleName, MEK> = Exclude<LifecycleName, MEK>
 > = {
-  [K in MEK]: K extends ExcludeInitializeLifecycle
-    ? ExreactLifecycleContext<K, MI> extends EmptyObject
+  [K in MEK]: K extends LifecycleName
+    ? ExreactLifecycleContext<K, MI, ME> extends EmptyObject
       ? () => BindThisForRecord<ME[K]>
-      : (ctx: ExreactLifecycleContext<K, MI>) => BindThisForRecord<ME[K]>
+      : (ctx: ExreactLifecycleContext<K, MI, ME>) => BindThisForRecord<ME[K]>
     : never;
 } & {
-  [K in LN]?: ExreactLifecycleContext<K, MI> extends never
+  [K in LN]?: ExreactLifecycleContext<K, MI, ME> extends never
     ? () => void
-    : (ctx: ExreactLifecycleContext<K, MI>) => void;
+    : (ctx: ExreactLifecycleContext<K, MI, ME>) => void;
 };
 
 export type ExtractScreepModuleInject<

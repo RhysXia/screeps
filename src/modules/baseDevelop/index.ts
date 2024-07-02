@@ -25,7 +25,7 @@ const baseDevelop = defineScreepModule<
   inject: [creepSpawnModuleName],
   binding({ [creepSpawnModuleName]: { spawn, onSpawn } }) {
     context.setCreepSpawn(spawn);
-
+    context.setRoles(roles);
     onSpawn((name, result) => {
       context.onSpawn(name, result);
     });
@@ -34,28 +34,29 @@ const baseDevelop = defineScreepModule<
     if (!Memory.creepConfig) {
       Memory.creepConfig = {};
     }
-    Object.values(roles).forEach((it) => it.create());
+    context.checkAndCreateRoles();
   },
   process() {
     // 刷新context
-    context.refresh();
+    context.update();
+
+    // 执行 role plan
     Object.keys(Memory.creepConfig).forEach((it) => {
       const creep = Game.creeps[it];
-      if (Memory.creepConfig[it].spwaning) {
+      const config = Memory.creepConfig[it];
+      if (!config || config.spwaning) {
         return;
       }
 
       // creep 不存在， 同时没有孵化，大概率挂掉了
       if (!creep) {
-        delete Memory.creepConfig[it];
+        context.creepRespawn(it);
         return;
       }
 
       if (creep.spawning) {
         return;
       }
-
-      const config = Memory.creepConfig[it];
 
       const role = roles[config.role];
 

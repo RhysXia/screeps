@@ -2,6 +2,12 @@ import { defineScreepModule } from "core/module";
 import { SpawnModuleExport, moduleName as spawnModuleName } from "../spawn";
 import { RoomModuleExport, moduleName as roomModuleName } from "../room";
 
+export enum CreepSpawnPriority {
+  HIGH = 0,
+  NORMAL = 1,
+  LOW = 2,
+}
+
 export type CreepSpawnListener = (
   name: string,
   code: ScreepsReturnCode
@@ -10,7 +16,8 @@ export type CreepSpawnListener = (
 export type CreepSpawnFn = (
   room: string,
   name: string,
-  bodies: Array<BodyPartConstant>
+  bodies: Array<BodyPartConstant>,
+  priority?: CreepSpawnPriority
 ) => void;
 
 export type CreepSpawnModuleExport = {
@@ -37,7 +44,7 @@ const ALL_BODIES: Array<BodyPartConstant> = [
   CLAIM,
 ];
 
-type RoomConfig = Array<{ n: string; b: Array<number> }>;
+type RoomConfig = Array<{ n: string; b: Array<number>; p: CreepSpawnPriority }>;
 
 const listeners: Array<CreepSpawnListener> = [];
 
@@ -64,28 +71,38 @@ export default defineScreepModule<
       onSpawn(fn) {
         listeners.push(fn);
       },
-      spawn(room, name, bodies) {
+      spawn(room, name, bodies, priority = CreepSpawnPriority.NORMAL) {
         const spawnIds = getSpawnIdsByRoom(room);
         if (!spawnIds.length) {
           throw new Error(`no StructureSpawn in room(${room})`);
         }
 
-        const config = getRoomConfig<RoomConfig>(room) || [];
+        const queue = getRoomConfig<RoomConfig>(room) || [];
 
-        config.push({ n: name, b: bodies.map((it) => ALL_BODIES.indexOf(it)) });
+        for (let i = 0; i < queue.length; i++) {
+          const task = queue[i];
+          if (task.p <= priority) {
+            queue.splice(i, 0, {
+              n: name,
+              b: bodies.map((it) => ALL_BODIES.indexOf(it)),
+              p: priority,
+            });
+          }
+        }
 
-        setRoomConfig<RoomConfig>(room, config);
+        setRoomConfig<RoomConfig>(room, queue);
       },
     };
   },
   postProcess({
+    self,
     [spawnModuleName]: { getSpawnIdsByRoom },
     [roomModuleName]: { getRoomConfig, setRoomConfig },
   }) {
     for (const roomName in Game.rooms) {
-      const tasks = getRoomConfig<RoomConfig>(roomName);
+      const queue = getRoomConfig<RoomConfig>(roomName);
 
-      if (!tasks || !tasks.length) {
+      if (!queue || !queue.length) {
         return;
       }
 
@@ -98,21 +115,19 @@ export default defineScreepModule<
           continue;
         }
 
-        const task = tasks.pop();
+        const task = queue.pop();
 
         if (!task) {
           break;
         }
 
-        const code = spawn.spawnCreep(
-          task.b.map((it) => ALL_BODIES[it]),
-          task.n,
-          {}
-        );
+        const bodies = task.b.map((it) => ALL_BODIES[it]);
 
-        if(code === ERR_NOT_ENOUGH_ENERGY) {
-          tasks.push(task)
-          continue
+        const code = spawn.spawnCreep(bodies, task.n, {});
+
+        if (code === ERR_NOT_ENOUGH_ENERGY) {
+          self.spawn(roomName, task.n, bodies, task.p);
+          continue;
         }
 
         callListeners(task.n, code);
