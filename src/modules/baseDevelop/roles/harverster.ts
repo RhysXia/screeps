@@ -10,7 +10,7 @@ const harverster: Role<HarversterConfigData> = {
   create() {
     _.forEach(Game.spawns, (spawn) => {
       const room = spawn.room;
-      const creepConfigs = Object.values(Memory.creepConfig);
+      const creepConfigs = Object.values(context.getMemory());
       const sources = room
         .find(FIND_SOURCES_ACTIVE)
         .map((s) => {

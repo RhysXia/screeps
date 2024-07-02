@@ -32,7 +32,6 @@ export default defineScreepModule<
         }
 
         const roomConfig = memory[room];
-
         if (!roomConfig) {
           return undefined;
         }

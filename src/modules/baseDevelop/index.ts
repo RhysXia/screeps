@@ -7,7 +7,7 @@ import {
   moduleName as defenderModuleName,
   DefenderModuleExport,
 } from "modules/defender";
-import { RoleName, Role } from "./types";
+import { RoleName, Role, CreepConfigItem } from "./types";
 import harverster from "./roles/harverster";
 import context from "./context";
 
@@ -25,7 +25,8 @@ export default defineScreepModule<
     [creepSpawnModuleName]: CreepSpawnModuleExport;
     [defenderModuleName]: DefenderModuleExport;
   },
-  DevelopModuleExport
+  DevelopModuleExport,
+  Record<string, CreepConfigItem>
 >({
   name: moduleName,
   inject: [creepSpawnModuleName, defenderModuleName],
@@ -37,19 +38,19 @@ export default defineScreepModule<
     });
   },
   initialize() {
-    if (!Memory.creepConfig) {
-      Memory.creepConfig = {};
-    }
     context.checkAndCreateRoles();
   },
   process({ [defenderModuleName]: { defense } }) {
     // 刷新context
-    context.update();
+    context.refresh({
+      memory: this.memory,
+    });
+    const memory = this.memory;
 
     // 执行 role plan
-    Object.keys(Memory.creepConfig).forEach((it) => {
+    Object.keys(memory).forEach((it) => {
       const creep = Game.creeps[it];
-      const config = Memory.creepConfig[it];
+      const config = memory[it];
       if (!config || config.spwaning) {
         return;
       }
@@ -57,7 +58,7 @@ export default defineScreepModule<
       // creep 不存在， 同时没有孵化，大概率挂掉了
       if (!creep) {
         context.creepRespawn(it);
-        checkInvade(config.room);
+        defense(config.room);
         return;
       }
 

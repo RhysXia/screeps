@@ -44,6 +44,8 @@ export const loop = ErrorMapper.wrapLoop(() => {
   invokeModules(sortedModules, "postProcess", processContextMap);
 });
 
+const o = Object.create(null);
+
 function invokeModules(
   modules: Array<ScreepsModule>,
   fnName: LifecycleName,
@@ -57,22 +59,21 @@ function invokeModules(
 
   if (isPostProcess) {
     // 逆序, postProcess 是被依赖的后执行
-    for (let i = modules.length; i >= 0; i--) {
+    for (let i = modules.length - 1; i >= 0; i--) {
       reversedModules.push(modules[i]);
     }
+    modules = reversedModules;
   }
-
-  modules = reversedModules;
 
   modules.forEach((it) => {
     const memoryKey = `#${it.name}`;
 
-    const memory = new Proxy(null, {
-      get(k) {
+    const memory = new Proxy(o, {
+      get(_, k) {
         const mem = Memory[memoryKey] || {};
         return Reflect.get(mem, k);
       },
-      set(k, v) {
+      set(_, k, v) {
         const mem = Memory[memoryKey] || {};
         Memory[memoryKey] = mem;
         return Reflect.set(mem, k, v);
@@ -92,11 +93,11 @@ function invokeModules(
     });
 
     const context: Record<string, Record<string, any>> = {
-      self: prevContextMap?.get?.(it.name) || {},
+      self: prevContextMap?.get?.(it.name),
     };
 
     (it.inject || []).forEach((dep) => {
-      context[dep] = (isPostProcess ? prevContextMap : contextMap).get(dep);
+      context[dep] = (isPostProcess ? prevContextMap : contextMap)?.get(dep);
     });
 
     const fn = it[fnName];
@@ -129,6 +130,10 @@ function bindingContextThis(
   const newContext: Record<string, Record<string, any>> = {};
   Object.keys(context).forEach((moduleName) => {
     const injectModule = context[moduleName];
+
+    if (!injectModule) {
+      return;
+    }
 
     const moduleCtx: Record<string, any> = {};
 

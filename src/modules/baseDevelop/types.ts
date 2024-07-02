@@ -39,11 +39,3 @@ export type CreepConfigItem<
   cursor: number;
   spwaning: boolean;
 } & T;
-
-declare global {
-  interface Memory {
-    creepConfig: Record<string, CreepConfigItem>;
-  }
-
-  interface Creep {}
-}
