@@ -6,7 +6,13 @@ import creepSpawn from "modules/creepSpawn";
 import baseDevelop from "modules/baseDevelop";
 import defender from "modules/defender";
 
-const modules = [room, spawn, creepSpawn, baseDevelop, defender] as Array<ScreepsModule>;
+const modules = [
+  room,
+  spawn,
+  creepSpawn,
+  baseDevelop,
+  defender,
+] as unknown as Array<ScreepsModule>;
 
 let sortedModules: Array<ScreepsModule>;
 
@@ -35,20 +41,7 @@ export const loop = ErrorMapper.wrapLoop(() => {
     bindedContextMap
   );
 
-  for (let i = sortedModules.length - 1; i > -1; i--) {
-    const module = sortedModules[i];
-    const context: Record<string, Record<string, any>> = {
-      self: processContextMap.get(module.name) || {},
-    };
-
-    (module.inject || []).forEach((dep) => {
-      const prevContext = processContextMap?.get(dep);
-      context[dep] = prevContext;
-    });
-
-    // @ts-ignore
-    module.postProcess?.(bindingContextThis(context, module));
-  }
+  invokeModules(sortedModules, "postProcess", processContextMap);
 });
 
 function invokeModules(
@@ -58,19 +51,63 @@ function invokeModules(
 ) {
   const contextMap = new Map<string, Record<string, any>>();
 
+  const isPostProcess = fnName === "postProcess";
+
+  const reversedModules: Array<ScreepsModule> = [];
+
+  if (isPostProcess) {
+    // 逆序, postProcess 是被依赖的后执行
+    for (let i = modules.length; i >= 0; i--) {
+      reversedModules.push(modules[i]);
+    }
+  }
+
+  modules = reversedModules;
+
   modules.forEach((it) => {
+    const memoryKey = `#${it.name}`;
+
+    const memory = new Proxy(null, {
+      get(k) {
+        const mem = Memory[memoryKey] || {};
+        return Reflect.get(mem, k);
+      },
+      set(k, v) {
+        const mem = Memory[memoryKey] || {};
+        Memory[memoryKey] = mem;
+        return Reflect.set(mem, k, v);
+      },
+      deleteProperty(_, p) {
+        const mem = Memory[memoryKey] || {};
+        return Reflect.deleteProperty(mem, p);
+      },
+      has(_, p) {
+        const mem = Memory[memoryKey] || {};
+        return Reflect.has(mem, p);
+      },
+      ownKeys() {
+        const mem = Memory[memoryKey] || {};
+        return Reflect.ownKeys(mem);
+      },
+    });
+
     const context: Record<string, Record<string, any>> = {
       self: prevContextMap?.get?.(it.name) || {},
     };
 
     (it.inject || []).forEach((dep) => {
-      context[dep] = contextMap.get(dep);
+      context[dep] = (isPostProcess ? prevContextMap : contextMap).get(dep);
     });
 
-    // @ts-ignorex
-    const currentContext = it[fnName]?.(bindingContextThis(context, it)) as
-      | Record<string, any>
-      | undefined;
+    const fn = it[fnName];
+
+    let currentContext: Record<string, any> | undefined;
+
+    if (fn) {
+      currentContext = fn.call({ memory }, bindingContextThis(context, it)) as
+        | Record<string, any>
+        | undefined;
+    }
 
     contextMap.set(it.name, {
       ...prevContextMap?.get(it.name),

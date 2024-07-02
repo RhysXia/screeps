@@ -1,11 +1,5 @@
 import { defineScreepModule } from "core/module";
 
-declare global {
-  interface Memory {
-    roomConfig: Record<string, Record<string, any>>;
-  }
-}
-
 export enum RoomChange {
   ADD,
   DELETE,
@@ -22,17 +16,22 @@ export type RoomModuleExport = {
 
 export const moduleName = "room";
 
-export default defineScreepModule<{}, RoomModuleExport>({
+export default defineScreepModule<
+  {},
+  RoomModuleExport,
+  Record<string, Record<string, any>>
+>({
   name: moduleName,
   binding() {
+    const memory = this.memory;
     return {
       getRoomConfig(room) {
         if (!Game.rooms[room]) {
-          delete Memory.roomConfig[room];
+          delete memory[room];
           throw new Error(`room(${room}) not found`);
         }
 
-        const roomConfig = Memory.roomConfig[room];
+        const roomConfig = memory[room];
 
         if (!roomConfig) {
           return undefined;
@@ -42,29 +41,25 @@ export default defineScreepModule<{}, RoomModuleExport>({
       },
       setRoomConfig(room, v) {
         if (!Game.rooms[room]) {
-          delete Memory.roomConfig[room];
+          delete memory[room];
           throw new Error(`room(${room}) not found`);
         }
 
-        const roomConfig = Memory.roomConfig[room] || {};
+        const roomConfig = memory[room] || {};
 
-        Memory.roomConfig[room] = roomConfig;
+        memory[room] = roomConfig;
 
         roomConfig[this.targetModuleName] = v;
       },
     };
   },
-  initialize() {
-    if (!Memory.roomConfig) {
-      Memory.roomConfig = {};
-    }
-  },
   postProcess() {
     // 隔5个ticks，清理一次memory
     if (Game.time % 5) {
-      Object.keys(Memory.roomConfig).forEach((name) => {
+      const memory = this.memory;
+      Object.keys(memory).forEach((name) => {
         if (!Game.rooms[name]) {
-          delete Memory.roomConfig[name];
+          delete memory[name];
         }
       });
     }

@@ -27,7 +27,7 @@ export enum RoleName {
 export type BaseDevelopModule = typeof baseDevelop;
 
 export type Role<T extends Record<string, any> = Record<string, any>> = {
-  create(): void;
+  create?(): void;
   plans: Array<(creep: Creep, config: CreepConfigItem<T>) => void | number>;
 };
 

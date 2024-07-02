@@ -67,7 +67,7 @@ class Context {
   }
 
   checkAndCreateRoles() {
-    Object.values(this._roles).forEach((it) => it.create());
+    Object.values(this._roles).forEach((it) => it?.create());
   }
 }
 

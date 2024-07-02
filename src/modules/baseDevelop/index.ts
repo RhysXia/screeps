@@ -42,7 +42,7 @@ export default defineScreepModule<
     }
     context.checkAndCreateRoles();
   },
-  process({ [defenderModuleName]: { checkInvade } }) {
+  process({ [defenderModuleName]: { defense } }) {
     // 刷新context
     context.update();
 

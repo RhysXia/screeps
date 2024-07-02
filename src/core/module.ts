@@ -56,19 +56,25 @@ export type ExreactLifecycleContext<
         : never]: LN extends keyof MI[K] ? MI[K][LN] : never;
     });
 
+export type BindThisForRecord<R, This extends object> = R extends Record<
+  any,
+  any
+>
+  ? {
+      [K in keyof R]: R[K] extends (...args: infer P) => infer R
+        ? (this: This, ...args: P) => R
+        : R[K];
+    }
+  : R;
+
 export type ModuleExportFunctionContext = {
   targetModuleName: string;
-};
-
-export type BindThisForRecord<T extends Record<string, any>> = {
-  [K in keyof T]: T[K] extends (...args: infer P) => infer R
-    ? (this: ModuleExportFunctionContext, ...args: P) => R
-    : T[K];
 };
 
 export type ExtractLifecycle<
   MI extends ModuleInject,
   ME extends ModuleExport,
+  Mem extends Record<string, any>,
   MEK extends Extract<LifecycleName, keyof ME> = Extract<
     LifecycleName,
     keyof ME
@@ -77,12 +83,14 @@ export type ExtractLifecycle<
 > = {
   [K in MEK]: K extends LifecycleName
     ? ExreactLifecycleContext<K, MI, ME> extends EmptyObject
-      ? () => BindThisForRecord<ME[K]>
-      : (ctx: ExreactLifecycleContext<K, MI, ME>) => BindThisForRecord<ME[K]>
+      ? () => BindThisForRecord<ME[K], ModuleExportFunctionContext>
+      : (
+          ctx: ExreactLifecycleContext<K, MI, ME>
+        ) => BindThisForRecord<ME[K], ModuleExportFunctionContext>
     : never;
 } & {
   [K in LN]?: ExreactLifecycleContext<K, MI, ME> extends never
-    ? () => void
+    ? (memory: Mem) => void
     : (ctx: ExreactLifecycleContext<K, MI, ME>) => void;
 };
 
@@ -100,9 +108,12 @@ export type ExtractScreepModuleInject<
 
 export type ScreepsModule<
   MI extends ModuleInject = ModuleInject,
-  ME extends ModuleExport = ModuleExport
+  ME extends ModuleExport = ModuleExport,
+  Mem extends Record<string, any> = Record<string, any>
 > = ExtractScreepModuleInject<MI> &
-  ExtractLifecycle<MI, ME> & {
+  BindThisForRecord<ExtractLifecycle<MI, ME, Mem>, {
+    memory: Mem
+  }> & {
     /**
      * 模块名称，唯一定位模块
      */
@@ -111,9 +122,10 @@ export type ScreepsModule<
 
 export const defineScreepModule = <
   MI extends ModuleInject,
-  ME extends ModuleExport
+  ME extends ModuleExport,
+  Mem extends Record<string, any> = Record<string, any>
 >(
-  module: ScreepsModule<MI, ME>
+  module: ScreepsModule<MI, ME, Mem>
 ) => module;
 
 export const sortModules = (modules: Array<ScreepsModule>) => {

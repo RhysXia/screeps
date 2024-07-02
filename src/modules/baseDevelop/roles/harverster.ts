@@ -1,12 +1,12 @@
 import context from "../context";
 import { Role, RoleName } from "../types";
 
-type ConfigData = {
+type HarversterConfigData = {
   sourceId: Source["id"];
   targetId?: ConstructionSite["id"] | StructureContainer["id"];
 };
 
-const harverster: Role<ConfigData> = {
+const harverster: Role<HarversterConfigData> = {
   create() {
     _.forEach(Game.spawns, (spawn) => {
       const room = spawn.room;
@@ -24,7 +24,7 @@ const harverster: Role<ConfigData> = {
         .filter(Boolean);
 
       sources.forEach((s) => {
-        const config = context.creepSpawn<ConfigData>(
+        const config = context.creepSpawn<HarversterConfigData>(
           RoleName.HARVERSTER,
           room.name
         );

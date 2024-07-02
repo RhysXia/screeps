@@ -24,6 +24,7 @@ export type CreepSpawnModuleExport = {
   binding: {
     onSpawn(fn: CreepSpawnListener): void;
     spawn: CreepSpawnFn;
+    cancelSpawn: (name: string) => void;
   };
 };
 
@@ -70,6 +71,16 @@ export default defineScreepModule<
     return {
       onSpawn(fn) {
         listeners.push(fn);
+      },
+      cancelSpawn(name) {
+        for (const roomName in Game.rooms) {
+          const queue = getRoomConfig<RoomConfig>(roomName) || [];
+          const index = queue.findIndex((it) => it.n == name);
+          if (index >= 0) {
+            queue.splice(index, 1);
+            break;
+          }
+        }
       },
       spawn(room, name, bodies, priority = CreepSpawnPriority.NORMAL) {
         const spawnIds = getSpawnIdsByRoom(room);

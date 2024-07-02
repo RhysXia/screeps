@@ -2,11 +2,17 @@ import { defineScreepModule } from "core/module";
 import {
   moduleName as creepSpawnModule,
   CreepSpawnModuleExport,
-} from "../creepSpawn";
+} from "modules/creepSpawn";
+
+declare global {
+  interface Memory {
+    needCheckDefender: Record<string, boolean>;
+  }
+}
 
 export type DefenderModuleExport = {
   binding: {
-    checkInvade(room: string): void;
+    defense(room: string): void;
   };
 };
 
@@ -22,7 +28,7 @@ export default defineScreepModule<
   inject: [creepSpawnModule],
   binding({ [creepSpawnModule]: { spawn } }) {
     return {
-      checkInvade(roomName) {
+      defense(roomName) {
         const room = Game.rooms[roomName];
 
         if (!room) {
@@ -37,5 +43,4 @@ export default defineScreepModule<
       },
     };
   },
-  postProcess() {},
 });
