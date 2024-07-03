@@ -30,7 +30,9 @@ export default defineScreepModule<
 >({
   name: moduleName,
   inject: [creepSpawnModuleName, defenderModuleName],
-  binding({ [creepSpawnModuleName]: { spawn, onSpawn } }) {
+  binding() {
+    const { spawn, onSpawn } = this.modules[creepSpawnModuleName];
+
     context.setCreepSpawn(spawn);
     context.setRoles(roles);
     context.setMemory(this.memory);
@@ -42,7 +44,7 @@ export default defineScreepModule<
   initialize() {
     context.checkAndCreateRoles();
   },
-  process({ [defenderModuleName]: { defense } }) {
+  process() {
     // 刷新context
     context.refresh();
 
@@ -61,7 +63,7 @@ export default defineScreepModule<
       // creep 不存在， 同时没有孵化，大概率挂掉了
       if (!creep) {
         context.creepRespawn(it);
-        defense(config.room);
+        this.modules[defenderModuleName].defense(config.room);
         return;
       }
 

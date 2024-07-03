@@ -20,7 +20,7 @@ export default defineScreepModule<
 >({
   name: moduleName,
   inject: [creepSpawnModule],
-  binding({ [creepSpawnModule]: { spawn } }) {
+  binding() {
     return {
       defense(roomName) {
         const room = Game.rooms[roomName];

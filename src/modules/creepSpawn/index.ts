@@ -64,17 +64,16 @@ export default defineScreepModule<
 >({
   name: moduleName,
   inject: [spawnModuleName, roomModuleName],
-  binding({
-    [spawnModuleName]: { getSpawnIdsByRoom },
-    [roomModuleName]: { getRoomConfig, setRoomConfig },
-  }) {
+  binding() {
     return {
       onSpawn(fn) {
         listeners.push(fn);
       },
       cancelSpawn(name) {
         for (const roomName in Game.rooms) {
-          const queue = getRoomConfig<RoomConfig>(roomName) || [];
+          const queue =
+            this.modules[roomModuleName].getRoomConfig<RoomConfig>(roomName) ||
+            [];
           const index = queue.findIndex((it) => it.n == name);
           if (index >= 0) {
             queue.splice(index, 1);
@@ -83,12 +82,13 @@ export default defineScreepModule<
         }
       },
       spawn(room, name, bodies, priority = CreepSpawnPriority.NORMAL) {
-        const spawnIds = getSpawnIdsByRoom(room);
+        const spawnIds = this.modules[spawnModuleName].getSpawnIdsByRoom(room);
         if (!spawnIds.length) {
           throw new Error(`no StructureSpawn in room(${room})`);
         }
 
-        const queue = getRoomConfig<RoomConfig>(room) || [];
+        const queue =
+          this.modules[roomModuleName].getRoomConfig<RoomConfig>(room) || [];
 
         let i = 0;
 
@@ -105,22 +105,20 @@ export default defineScreepModule<
           p: priority,
         });
 
-        setRoomConfig<RoomConfig>(room, queue);
+        this.modules[roomModuleName].setRoomConfig<RoomConfig>(room, queue);
       },
     };
   },
-  postProcess({
-    [spawnModuleName]: { getSpawnIdsByRoom },
-    [roomModuleName]: { getRoomConfig, setRoomConfig },
-  }) {
+  postProcess() {
     for (const roomName in Game.rooms) {
-      const queue = getRoomConfig<RoomConfig>(roomName);
+      const queue =
+        this.modules[roomModuleName].getRoomConfig<RoomConfig>(roomName);
 
       if (!queue || !queue.length) {
         continue;
       }
 
-      const spawns = getSpawnIdsByRoom(roomName).map((it) =>
+      const spawns = this.modules[spawnModuleName].getSpawnIdsByRoom(roomName).map((it) =>
         Game.getObjectById<StructureSpawn>(it)
       );
 

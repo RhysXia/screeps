@@ -93,12 +93,17 @@ const getMemoryForModule = (module: ScreepsModule) => {
   return memory;
 };
 
+type ModuleInfo = {
+  contextThis: Record<string, any>;
+  moduleExports: Record<string, any>;
+};
+
 const invokeModules = (
   modules: Array<ScreepsModule>,
   fnName: LifecycleName,
-  prevContextMap?: Map<string, Record<string, any>>
+  prevModuleInfoMap?: Map<string, ModuleInfo>
 ) => {
-  const contextMap = new Map<string, Record<string, any>>();
+  const moduleInfoMap = new Map<string, ModuleInfo>();
 
   const isPostProcess = fnName === "postProcess";
 
@@ -113,37 +118,67 @@ const invokeModules = (
   }
 
   modules.forEach((it) => {
-    const context: Record<string, Record<string, any>> = {
-      self: prevContextMap?.get?.(it.name),
-    };
+    const injectedModuleExports: Record<string, any> = {};
 
-    (it.inject || []).forEach((dep) => {
-      context[dep] = (isPostProcess ? prevContextMap : contextMap)?.get(dep);
+    (it.inject || []).forEach((injectModuleName) => {
+      const moduleInfo = (
+        isPostProcess ? prevModuleExports : moduleInfoMap
+      )?.get(injectModuleName);
+
+      if (moduleInfo) {
+        const { contextThis, moduleExports } = moduleInfo;
+
+        // 其他module export被注入进来的ctx，this 指向的应该是原来的module
+        const exportContextThis = {
+          ...contextThis,
+          targetModuleName: it.name,
+        };
+
+        injectedModuleExports[injectModuleName] = bindThisForModuleExport(
+          moduleExports,
+          exportContextThis
+        );
+      }
     });
 
-    const fn = it[fnName];
+    const prevModuleExports = prevModuleInfoMap?.get?.(it.name)?.moduleExports;
 
-    let currentContext: Record<string, any> | undefined;
+    // 生命周期方法的this
+    const lifecycleContextThis = {
+      ...prevModuleExports,
+      memory: getMemoryForModule(it),
+      modules: injectedModuleExports,
+    };
+    const currentExports = it[fnName]?.call(lifecycleContextThis);
 
-    if (fn) {
-      currentContext = fn.call(
-        { memory: getMemoryForModule(it) },
-        bindingContextThis(context, {
-          targetModuleName: it.name,
-        })
-      ) as Record<string, any> | undefined;
-    }
-
-    contextMap.set(it.name, {
-      ...prevContextMap?.get(it.name),
-      ...currentContext,
+    moduleInfoMap.set(it.name, {
+      moduleExports: {
+        ...prevModuleExports,
+        ...currentExports,
+      },
+      contextThis: lifecycleContextThis,
     });
   });
 
-  return contextMap;
+  return moduleInfoMap;
 };
 
-const bindingContextThis = (context: Record<string, any>, thisContext: any) => {
+const bindThis = (fn: any, contextThis: any) => {
+  if (typeof fn === "function") {
+    return (...args: any) => fn.call(contextThis, ...args);
+  }
+
+  return fn;
+};
+
+const bindThisForModuleExport = (
+  context: Record<string, any> | undefined,
+  thisContext: any
+) => {
+  if (!context) {
+    return;
+  }
+
   const newContext: Record<string, Record<string, any>> = {};
   Object.keys(context).forEach((moduleName) => {
     const injectModule = context[moduleName];
@@ -156,12 +191,7 @@ const bindingContextThis = (context: Record<string, any>, thisContext: any) => {
 
     Object.keys(injectModule).forEach((key) => {
       const value = injectModule[key];
-      if (typeof value === "function") {
-        moduleCtx[key] = (...args: any) =>
-          (value as Function).call(thisContext, ...args);
-      } else {
-        moduleCtx[key] = value;
-      }
+      moduleCtx[key] = bindThis(value, thisContext);
     });
 
     newContext[moduleName] = moduleCtx;
@@ -184,7 +214,7 @@ type AnyScreepModule = {
 export const createInvokeChain = (...modules: Array<AnyScreepModule>) => {
   let sortedModules: Array<ScreepsModule>;
 
-  let bindedContextMap: Map<string, Record<string, any>>;
+  let bindedContextMap: Map<string, ModuleInfo>;
 
   return () => {
     if (!sortedModules) {

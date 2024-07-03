@@ -31,7 +31,31 @@ export type ExtractLifecycleName<MI extends ModuleInject> = MI extends Record<
   ? keyof UnionToIntersection<O>
   : never;
 
-export type ExtractLifecycleContextFromSelf<
+export type ExreactLifecycleContext<
+  LN extends LifecycleName,
+  MI extends ModuleInject,
+  ME extends ModuleExport
+> = LN extends "postProcess"
+  ? ExreactLifecycleContext<"process", MI, ME>
+  : (LN extends "initialize" | "process"
+      ? ExreactLifecycleContext<"binding", MI, ME>
+      : {}) & {
+      [K in keyof MI as LN extends keyof MI[K]
+        ? K
+        : never]: LN extends keyof MI[K] ? MI[K][LN] : never;
+    };
+
+export type BindThis<This extends object, T> = T extends (
+  ...args: infer P
+) => infer R
+  ? (this: This, ...args: P) => R
+  : T;
+
+export type BindThisForRecord<This extends object, R> = {
+  [K in keyof R]: BindThis<This, R[K]>;
+};
+
+export type ExtractLifecycleExports<
   LN extends LifecycleName,
   ME extends ModuleExport
 > = LN extends "postProcess"
@@ -40,41 +64,24 @@ export type ExtractLifecycleContextFromSelf<
   ? ME["binding"]
   : {};
 
-export type ExreactLifecycleContext<
+export type ModuleLifecycleContextThis<
   LN extends LifecycleName,
-  MI extends ModuleInject,
-  ME extends ModuleExport
-> = {
-  self: ExtractLifecycleContextFromSelf<LN, ME>;
-} & (LN extends "postProcess"
-  ? ExreactLifecycleContext<"process", MI, ME>
-  : (LN extends "initialize" | "process"
-      ? ExreactLifecycleContext<"binding", MI, ME>
-      : {}) & {
-      [K in keyof MI as LN extends keyof MI[K]
-        ? K
-        : never]: LN extends keyof MI[K] ? MI[K][LN] : never;
-    });
+  ME extends ModuleExport,
+  C extends Record<string, any>
+> = C & ExtractLifecycleExports<LN, ME>;
 
-export type BindThisForRecord<R, This extends object> = R extends Record<
-  any,
-  any
->
-  ? {
-      [K in keyof R]: R[K] extends (...args: infer P) => infer R
-        ? (this: This, ...args: P) => R
-        : R[K];
-    }
-  : R;
-
-export type ModuleExportFunctionContext = {
+export type ModuleLifecycleExportContextThis<
+  LN extends LifecycleName,
+  ME extends ModuleExport,
+  C extends Record<string, any>
+> = ModuleLifecycleContextThis<LN, ME, C> & {
   targetModuleName: string;
 };
 
 export type ExtractLifecycle<
   MI extends ModuleInject,
   ME extends ModuleExport,
-  Mem extends Record<string, any>,
+  C extends Record<string, any>,
   MEK extends Extract<LifecycleName, keyof ME> = Extract<
     LifecycleName,
     keyof ME
@@ -83,15 +90,40 @@ export type ExtractLifecycle<
 > = {
   [K in MEK]: K extends LifecycleName
     ? ExreactLifecycleContext<K, MI, ME> extends EmptyObject
-      ? () => BindThisForRecord<ME[K], ModuleExportFunctionContext>
-      : (
-          ctx: ExreactLifecycleContext<K, MI, ME>
-        ) => BindThisForRecord<ME[K], ModuleExportFunctionContext>
+      ? BindThis<
+          ModuleLifecycleContextThis<K, ME, C>,
+          () => BindThisForRecord<
+            ModuleLifecycleExportContextThis<K, ME, C>,
+            ME[K]
+          >
+        >
+      : BindThis<
+          ModuleLifecycleContextThis<
+            K,
+            ME,
+            C & { modules: ExreactLifecycleContext<K, MI, ME> }
+          >,
+          () => BindThisForRecord<
+            ModuleLifecycleExportContextThis<
+              K,
+              ME,
+              C & { modules: ExreactLifecycleContext<K, MI, ME> }
+            >,
+            ME[K]
+          >
+        >
     : never;
 } & {
   [K in LN]?: ExreactLifecycleContext<K, MI, ME> extends never
-    ? (memory: Mem) => void
-    : (ctx: ExreactLifecycleContext<K, MI, ME>) => void;
+    ? BindThis<ModuleLifecycleContextThis<K, ME, C>, () => void>
+    : BindThis<
+        ModuleLifecycleContextThis<
+          K,
+          ME,
+          C & { modules: ExreactLifecycleContext<K, MI, ME> }
+        >,
+        () => void
+      >;
 };
 
 export type ExtractScreepModuleInject<
@@ -111,12 +143,7 @@ export type ScreepsModule<
   ME extends ModuleExport = ModuleExport,
   Mem extends Record<string, any> = Record<string, any>
 > = ExtractScreepModuleInject<MI> &
-  BindThisForRecord<
-    ExtractLifecycle<MI, ME, Mem>,
-    {
-      memory: Mem;
-    }
-  > & {
+  ExtractLifecycle<MI, ME, { memory: Mem }> & {
     /**
      * 模块名称，唯一定位模块
      */
