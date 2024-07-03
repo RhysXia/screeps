@@ -8,7 +8,7 @@
  */
 
 import { SourceMapConsumer } from "source-map";
-import colorful from "utils/colorful";
+import { error } from "./logger";
 
 export class ErrorMapper {
   // 进行缓存
@@ -92,7 +92,7 @@ export class ErrorMapper {
               )}`
             : `${_.escape(this.sourceMappedStackTrace(e))}`;
 
-          console.log(colorful(errorMessage, "red"));
+          error(errorMessage);
         }
         // 处理不了，直接抛出
         else throw e;
