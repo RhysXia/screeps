@@ -4,12 +4,6 @@ import {
   CreepSpawnModuleExport,
 } from "modules/creepSpawn";
 
-declare global {
-  interface Memory {
-    needCheckDefender: Record<string, boolean>;
-  }
-}
-
 export type DefenderModuleExport = {
   binding: {
     defense(room: string): void;

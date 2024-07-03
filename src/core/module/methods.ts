@@ -192,9 +192,11 @@ export const createInvokeChain = (...modules: Array<AnyScreepModule>) => {
       bindedContextMap = invokeModules(sortedModules, "binding");
     }
 
-    if (!Memory.isModuleInited) {
+    const memory = Memory as unknown as { $isInit: boolean };
+
+    if (!memory.$isInit) {
       invokeModules(sortedModules, "initialize", bindedContextMap);
-      Memory.isModuleInited = true;
+      memory.$isInit = true;
     }
 
     const processContextMap = invokeModules(

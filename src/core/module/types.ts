@@ -122,9 +122,3 @@ export type ScreepsModule<
      */
     name: string;
   };
-
-declare global {
-  interface Memory {
-    isModuleInited?: boolean;
-  }
-}
