@@ -18,7 +18,7 @@ const roles: Record<RoleName, Role> = {
   [RoleName.HARVERSTER]: harverster,
 };
 
-export const moduleName = "baseDevelop";
+export const moduleName = "develop";
 
 export default defineScreepModule<
   {
@@ -33,22 +33,19 @@ export default defineScreepModule<
   binding({ [creepSpawnModuleName]: { spawn, onSpawn } }) {
     context.setCreepSpawn(spawn);
     context.setRoles(roles);
+    context.setMemory(this.memory);
+
     onSpawn((name, result) => {
       context.onSpawn(name, result);
     });
   },
   initialize() {
-    // 刷新context
-    context.refresh({
-      memory: this.memory,
-    });
     context.checkAndCreateRoles();
   },
   process({ [defenderModuleName]: { defense } }) {
     // 刷新context
-    context.refresh({
-      memory: this.memory,
-    });
+    context.refresh();
+
     const memory = this.memory;
 
     // 执行 role plan

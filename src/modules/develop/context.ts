@@ -13,9 +13,12 @@ class Context {
 
   private count = 0;
 
-  refresh({ memory }: { memory: Record<string, CreepConfigItem<any>> }) {
-    this._memory = memory;
+  refresh() {
     this.count = 0;
+  }
+
+  setMemory(memory: Record<string, CreepConfigItem<any>>) {
+    this._memory = memory;
   }
 
   getMemory() {
@@ -55,7 +58,7 @@ class Context {
     role: RoleName,
     room: string
   ) {
-    const name = `${room}_${role}_${Game.time}${this.count}`;
+    const name = `${role}_${String(Game.time).slice(-5, -1)}${this.count}`;
 
     this._creepSpawn(room, name, bodiesMap[role]);
 

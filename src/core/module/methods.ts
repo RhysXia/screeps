@@ -58,11 +58,46 @@ const sortModules = (modules: Array<ScreepsModule>) => {
 
 const o = Object.create(null);
 
-function invokeModules(
+const getMemoryForModule = (module: ScreepsModule) => {
+  const memoryKey = `#${module.name}`;
+
+  // memory 每次都会从 Memory 中获取最新值，可以使 Module 中持有此引用也能正常使用
+  const memory = new Proxy(o, {
+    get(_, k) {
+      const memory = (Memory[memoryKey] = Memory[memoryKey] || {});
+
+      return Reflect.get(memory, k);
+    },
+    set(_, k, v) {
+      const memory = (Memory[memoryKey] = Memory[memoryKey] || {});
+      return Reflect.set(memory, k, v);
+    },
+    has(_, k) {
+      const memory = Memory[memoryKey] || {};
+      return Reflect.has(memory, k);
+    },
+    ownKeys(_) {
+      const memory = Memory[memoryKey] || {};
+      return Reflect.ownKeys(memory);
+    },
+    deleteProperty(_, k) {
+      const memory = Memory[memoryKey] || {};
+      return Reflect.deleteProperty(memory, k);
+    },
+    getOwnPropertyDescriptor(_, k) {
+      const memory = Memory[memoryKey] || {};
+      return Reflect.getOwnPropertyDescriptor(memory, k);
+    },
+  });
+
+  return memory;
+};
+
+const invokeModules = (
   modules: Array<ScreepsModule>,
   fnName: LifecycleName,
   prevContextMap?: Map<string, Record<string, any>>
-) {
+) => {
   const contextMap = new Map<string, Record<string, any>>();
 
   const isPostProcess = fnName === "postProcess";
@@ -78,19 +113,6 @@ function invokeModules(
   }
 
   modules.forEach((it) => {
-    const memoryKey = `#${it.name}`;
-
-    const thisContext = new Proxy(o, {
-      get(_, k) {
-        if (k !== "memory") {
-          return;
-        }
-        const memory = (Memory[memoryKey] = Memory[memoryKey] || {});
-
-        return memory;
-      },
-    });
-
     const context: Record<string, Record<string, any>> = {
       self: prevContextMap?.get?.(it.name),
     };
@@ -105,7 +127,7 @@ function invokeModules(
 
     if (fn) {
       currentContext = fn.call(
-        thisContext,
+        { memory: getMemoryForModule(it) },
         bindingContextThis(context, {
           targetModuleName: it.name,
         })
@@ -119,9 +141,9 @@ function invokeModules(
   });
 
   return contextMap;
-}
+};
 
-function bindingContextThis(context: Record<string, any>, thisContext: any) {
+const bindingContextThis = (context: Record<string, any>, thisContext: any) => {
   const newContext: Record<string, Record<string, any>> = {};
   Object.keys(context).forEach((moduleName) => {
     const injectModule = context[moduleName];
@@ -146,7 +168,7 @@ function bindingContextThis(context: Record<string, any>, thisContext: any) {
   });
 
   return newContext;
-}
+};
 
 type AnyScreepModule = {
   name: string;
