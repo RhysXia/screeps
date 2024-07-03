@@ -38,6 +38,10 @@ export default defineScreepModule<
     });
   },
   initialize() {
+    // 刷新context
+    context.refresh({
+      memory: this.memory,
+    });
     context.checkAndCreateRoles();
   },
   process({ [defenderModuleName]: { defense } }) {
@@ -46,7 +50,6 @@ export default defineScreepModule<
       memory: this.memory,
     });
     const memory = this.memory;
-    console.log(memory,Object.keys(memory), '-----')
 
     // 执行 role plan
     Object.keys(memory).forEach((it) => {
