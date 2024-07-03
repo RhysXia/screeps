@@ -26,16 +26,18 @@ export enum RoleName {
 
 export type BaseDevelopModule = typeof baseDevelop;
 
-export type Role<T extends Record<string, any> = Record<string, any>> = {
-  create?(): void;
-  plans: Array<(creep: Creep, config: CreepConfigItem<T>) => void | number>;
+export type Role<T extends Record<string, any>> = {
+  checkAndCreate?(): void;
+  plans: Array<(creep: Creep, data: CreepData<T>) => void | number>;
 };
 
-export type CreepConfigItem<
-  T extends Record<string, any> = Record<string, any>
-> = {
+export type CreepData<T extends Record<string, any> = Record<string, any>> = {
   role: RoleName;
   room: string;
   cursor: number;
   spwaning: boolean;
 } & T;
+
+export type MemoryData = {
+  creeps: Record<string, CreepData>
+}

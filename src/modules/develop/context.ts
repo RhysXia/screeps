@@ -1,5 +1,5 @@
 import { CreepSpawnFn } from "modules/creepSpawn";
-import { CreepConfigItem, Role, RoleName } from "./types";
+import { CreepData, MemoryData, Role, RoleName } from "./types";
 
 // @ts-ignore
 const bodiesMap: Record<RoleName, Array<BodyPartConstant>> = {
@@ -8,8 +8,8 @@ const bodiesMap: Record<RoleName, Array<BodyPartConstant>> = {
 
 class Context {
   private _creepSpawn: CreepSpawnFn;
-  private _roles: Record<RoleName, Role>;
-  private _memory: Record<string, CreepConfigItem<any>>;
+  private _roles: Record<RoleName, Role<any>>;
+  private _memory: MemoryData;
 
   private count = 0;
 
@@ -17,8 +17,12 @@ class Context {
     this.count = 0;
   }
 
-  setMemory(memory: Record<string, CreepConfigItem<any>>) {
+  setMemory(memory: MemoryData) {
     this._memory = memory;
+
+    if (!memory.creeps) {
+      memory.creeps = {};
+    }
   }
 
   getMemory() {
@@ -29,7 +33,7 @@ class Context {
     this._creepSpawn = creepSpawn;
   }
 
-  setRoles(roles: Record<RoleName, Role>) {
+  setRoles(roles: Record<RoleName, Role<any>>) {
     this._roles = roles;
   }
 
@@ -38,14 +42,14 @@ class Context {
       return;
     }
     if (code !== OK) {
-      delete this._memory.creepConfig[name];
+      delete this._memory.creeps[name];
       return;
     }
-    this._memory[name].spwaning = false;
+    this._memory.creeps[name].spwaning = false;
   }
 
   creepRespawn(name: string) {
-    const config = this._memory[name];
+    const config = this._memory.creeps[name];
     if (!config) {
       throw new Error(`could not found creep(${name})`);
     }
@@ -67,9 +71,9 @@ class Context {
       room,
       spwaning: true,
       cursor: 0,
-    } as CreepConfigItem<T>;
+    } as CreepData<T>;
 
-    this._memory[name] = config;
+    this._memory.creeps[name] = config;
 
     this.count++;
 
@@ -77,8 +81,12 @@ class Context {
   }
 
   checkAndCreateRoles() {
-    Object.values(this._roles).forEach((it) => it?.create());
+    Object.values(this._roles).forEach((it) => it?.checkAndCreate());
   }
 }
 
-export default new Context();
+const context = new Context();
+
+export default context
+
+global.context = context

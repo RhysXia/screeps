@@ -7,7 +7,9 @@ export type CollectorConfigData = {
 };
 
 const collector: Role<CollectorConfigData> = {
-  plans: [() => {}],
+  plans: [() => {
+
+  }],
 };
 
 export default collector;

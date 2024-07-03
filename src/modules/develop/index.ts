@@ -7,7 +7,7 @@ import {
   moduleName as defenderModuleName,
   DefenderModuleExport,
 } from "modules/defender";
-import { RoleName, Role, CreepConfigItem } from "./types";
+import { RoleName, Role, CreepData, MemoryData } from "./types";
 import harverster from "./roles/harverster";
 import context from "./context";
 
@@ -26,7 +26,7 @@ export default defineScreepModule<
     [defenderModuleName]: DefenderModuleExport;
   },
   DevelopModuleExport,
-  Record<string, CreepConfigItem>
+  MemoryData
 >({
   name: moduleName,
   inject: [creepSpawnModuleName, defenderModuleName],
@@ -48,10 +48,12 @@ export default defineScreepModule<
 
     const memory = this.memory;
 
+    const creepsMemory = memory.creeps;
+
     // 执行 role plan
-    Object.keys(memory).forEach((it) => {
+    Object.keys(creepsMemory).forEach((it) => {
       const creep = Game.creeps[it];
-      const config = memory[it];
+      const config = creepsMemory[it];
       if (!config || config.spwaning) {
         return;
       }

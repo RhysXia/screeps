@@ -1,16 +1,16 @@
 import context from "../context";
 import { Role, RoleName } from "../types";
 
-type HarversterConfigData = {
+export type HarversterData = {
   sourceId: Source["id"];
   targetId?: ConstructionSite["id"] | StructureContainer["id"];
 };
 
-const harverster: Role<HarversterConfigData> = {
-  create() {
+const harverster: Role<HarversterData> = {
+  checkAndCreate() {
     _.forEach(Game.spawns, (spawn) => {
       const room = spawn.room;
-      const creepConfigs = Object.values(context.getMemory());
+      const creepConfigs = Object.values(context.getMemory().creeps);
       const sources = room
         .find(FIND_SOURCES_ACTIVE)
         .map((s) => {
@@ -24,7 +24,7 @@ const harverster: Role<HarversterConfigData> = {
         .filter(Boolean);
 
       sources.forEach((s) => {
-        const config = context.creepSpawn<HarversterConfigData>(
+        const config = context.creepSpawn<HarversterData>(
           RoleName.HARVERSTER,
           room.name
         );
@@ -35,7 +35,7 @@ const harverster: Role<HarversterConfigData> = {
   plans: [
     // 移动到目的地
     (creep, config) => {
-      const { sourceId, targetId } = config;
+      const { sourceId } = config;
 
       const source = Game.getObjectById<Source>(sourceId);
 
