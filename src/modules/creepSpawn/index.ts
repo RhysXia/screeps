@@ -65,15 +65,16 @@ export default defineScreepModule<
   name: moduleName,
   inject: [spawnModuleName, roomModuleName],
   binding() {
+    const { getRoomConfig, setRoomConfig } = this.modules[roomModuleName];
+    const { getSpawnIdsByRoom } = this.modules[spawnModuleName];
+
     return {
       onSpawn(fn) {
         listeners.push(fn);
       },
       cancelSpawn(name) {
         for (const roomName in Game.rooms) {
-          const queue =
-            this.modules[roomModuleName].getRoomConfig<RoomConfig>(roomName) ||
-            [];
+          const queue = getRoomConfig<RoomConfig>(roomName) || [];
           const index = queue.findIndex((it) => it.n == name);
           if (index >= 0) {
             queue.splice(index, 1);
@@ -82,13 +83,12 @@ export default defineScreepModule<
         }
       },
       spawn(room, name, bodies, priority = CreepSpawnPriority.NORMAL) {
-        const spawnIds = this.modules[spawnModuleName].getSpawnIdsByRoom(room);
+        const spawnIds = getSpawnIdsByRoom(room);
         if (!spawnIds.length) {
           throw new Error(`no StructureSpawn in room(${room})`);
         }
 
-        const queue =
-          this.modules[roomModuleName].getRoomConfig<RoomConfig>(room) || [];
+        const queue = getRoomConfig<RoomConfig>(room) || [];
 
         let i = 0;
 
@@ -105,20 +105,22 @@ export default defineScreepModule<
           p: priority,
         });
 
-        this.modules[roomModuleName].setRoomConfig<RoomConfig>(room, queue);
+        setRoomConfig<RoomConfig>(room, queue);
       },
     };
   },
   postProcess() {
+    const { getRoomConfig } = this.modules[roomModuleName];
+    const { getSpawnIdsByRoom } = this.modules[spawnModuleName];
+
     for (const roomName in Game.rooms) {
-      const queue =
-        this.modules[roomModuleName].getRoomConfig<RoomConfig>(roomName);
+      const queue = getRoomConfig<RoomConfig>(roomName);
 
       if (!queue || !queue.length) {
         continue;
       }
 
-      const spawns = this.modules[spawnModuleName].getSpawnIdsByRoom(roomName).map((it) =>
+      const spawns = getSpawnIdsByRoom(roomName).map((it) =>
         Game.getObjectById<StructureSpawn>(it)
       );
 

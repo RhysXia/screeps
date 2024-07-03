@@ -20,10 +20,11 @@ export default defineScreepModule<
   name: moduleName,
   inject: [roomModuleName],
   binding() {
+    const { getRoomConfig } = this.modules[roomModuleName];
+
     return {
       getSpawnIdsByRoom(room) {
-        const spawnIds =
-          this.modules[roomModuleName].getRoomConfig<RoomConfig>(room);
+        const spawnIds = getRoomConfig<RoomConfig>(room);
         return spawnIds || [];
       },
     };
@@ -42,8 +43,10 @@ export default defineScreepModule<
       map.set(roomName, array);
     }
 
+    const { setRoomConfig } = this.modules[roomModuleName];
+
     map.forEach((array, name) => {
-      this.modules[roomModuleName].setRoomConfig<RoomConfig>(name, array);
+      setRoomConfig<RoomConfig>(name, array);
     });
   },
 });

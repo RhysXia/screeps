@@ -52,6 +52,8 @@ export default defineScreepModule<
 
     const creepsMemory = memory.creeps;
 
+    const { defense } = this.modules[defenderModuleName];
+
     // 执行 role plan
     Object.keys(creepsMemory).forEach((it) => {
       const creep = Game.creeps[it];
@@ -63,7 +65,7 @@ export default defineScreepModule<
       // creep 不存在， 同时没有孵化，大概率挂掉了
       if (!creep) {
         context.creepRespawn(it);
-        this.modules[defenderModuleName].defense(config.room);
+        defense(config.room);
         return;
       }
 
