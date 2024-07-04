@@ -2,14 +2,14 @@ import { Message } from "common/message";
 import { CreepData } from "./types";
 
 export type MessageType = {
-  moduleInit: void;
-  onSpawn: {
+  onCreepSpawn: {
     name: string;
     code: ScreepsReturnCode;
   };
-  spawn: Omit<CreepData, "cursor" | "spawning"> & { cursor?: string };
-  reSpawn: string;
-  check: void
+  creepSpawn: Omit<CreepData, "cursor" | "spawning"> & { cursor?: string };
+  creepReSpawn: string;
+  creepRemove: string;
+  check: void;
 };
 
 const message = new Message<MessageType>();

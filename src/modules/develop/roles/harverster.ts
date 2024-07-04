@@ -1,33 +1,23 @@
 import { debug, warning } from "core/logger";
 import { CollectorData, Role } from "../types";
 
+/**
+ * 采集者
+ * 初始化时，根据source数量创建相同数量的harverster
+ *
+ * 准备阶段：
+ * 查看目标source附近有没有container或者container工地，如果有，则直接移动到container上，如果没有，移动到source附近1格位置
+ *
+ * 维护阶段：
+ * 如果target为container，则先维修，如果为工地，则建造工地
+ */
 // prepare -> build -> harvest
 const harverster: Role<"harverster", "build" | "harvest"> = {
   subscribes: {
-    moduleInit() {
-      _.forEach(Game.spawns, (spawn) => {
-        const room = spawn.room;
-        const creepConfigs = Object.values(this.memory.creeps);
-        const sources = room
-          .find(FIND_SOURCES_ACTIVE)
-          .filter((s) => creepConfigs.some((it) => it.sourceId == s.id))
-          .map((s) => {
-            return {
-              sourceId: s.id,
-            };
-          })
-          .filter(Boolean);
-
-        sources.forEach((s) => {
-          this.publish("spawn", {
-            role: "harverster",
-            room: room.name,
-            sourceId: s.sourceId,
-          });
-        });
-      });
-    },
     check() {
+      if (Game.time % 5 !== 0) {
+        return;
+      }
       debug("haverster doing check");
       _.forEach(Game.spawns, (spawn) => {
         const room = spawn.room;
@@ -45,7 +35,7 @@ const harverster: Role<"harverster", "build" | "harvest"> = {
           .filter(Boolean);
 
         sources.forEach((s) => {
-          this.publish("spawn", {
+          this.publish("creepSpawn", {
             role: "harverster",
             room: room.name,
             sourceId: s.sourceId,
@@ -129,8 +119,13 @@ const harverster: Role<"harverster", "build" | "harvest"> = {
       const source = Game.getObjectById(sourceId);
 
       // 提前孵化
-      if (creep.ticksToLive < (config.walkTick || 2)) {
-        this.publish("spawn", {
+      if (
+        creep.ticksToLive < (config.walkTick || 2) &&
+        Object.values(this.memory.creeps).filter(
+          (it) => it.role === "harverster" && it.sourceId === config.sourceId
+        ).length > 1
+      ) {
+        this.publish("creepSpawn", {
           role: "harverster",
           room: config.room,
           sourceId: config.sourceId,
@@ -189,7 +184,7 @@ const harverster: Role<"harverster", "build" | "harvest"> = {
               (it as CollectorData).sourceId !== target.id
           )
         ) {
-          this.publish("spawn", {
+          this.publish("creepSpawn", {
             room: config.room,
             role: "collector",
             sourceId: target.id,
@@ -211,13 +206,24 @@ const harverster: Role<"harverster", "build" | "harvest"> = {
       }
 
       creep.build(target);
+
+      // 快挂了，扔掉资源
+      if (creep.ticksToLive < 2) {
+        creep.drop(RESOURCE_ENERGY);
+        this.publish("creepRemove", creep.name);
+      }
     },
     // 疯狂挖矿，多了会自动掉落，被container收集
     harvest(creep, config) {
       const { sourceId, walkTick } = config;
 
-      if (creep.ticksToLive < (walkTick || 2)) {
-        this.publish("spawn", {
+      if (
+        creep.ticksToLive < (walkTick || 2) &&
+        Object.values(this.memory.creeps).filter(
+          (it) => it.role === "harverster" && it.sourceId === config.sourceId
+        ).length > 1
+      ) {
+        this.publish("creepSpawn", {
           role: "harverster",
           room: config.room,
           sourceId: config.sourceId,
@@ -240,6 +246,7 @@ const harverster: Role<"harverster", "build" | "harvest"> = {
       // 快挂了，扔掉资源
       if (creep.ticksToLive < 2) {
         creep.drop(RESOURCE_ENERGY);
+        this.publish("creepRemove", creep.name);
       }
     },
   },

@@ -1,7 +1,8 @@
 import { Role } from "../types";
 
 const upgrader: Role<'upgrader'> = {
-    subscribes: {},
+    subscribes: {
+    },
     plans: {
         prepare() {
             

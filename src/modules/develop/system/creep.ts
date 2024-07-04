@@ -9,7 +9,7 @@ const bodiesMap: Record<RoleName, Array<BodyPartConstant>> = {
 };
 
 const creep: Subscribes = {
-  onSpawn({ name, code }) {
+  onCreepSpawn({ name, code }) {
     if (code === ERR_NAME_EXISTS) {
       return;
     }
@@ -19,7 +19,10 @@ const creep: Subscribes = {
     }
     this.memory.creeps[name].spawning = false;
   },
-  spawn({ room, role, ...others }) {
+  creepRemove(name) {
+    delete this.memory.creeps[name]
+  },
+  creepSpawn({ room, role, ...others }) {
     const memory = this.memory.creeps;
 
     const bodies = bodiesMap[role];
@@ -37,7 +40,7 @@ const creep: Subscribes = {
 
     this.modules.creepSpawn.spawn(room, name, bodies);
   },
-  reSpawn(name) {
+  creepReSpawn(name) {
     const config = this.memory.creeps[name];
     if (!config) {
       throw new Error(`could not found creep(${name})`);

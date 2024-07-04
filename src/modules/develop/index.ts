@@ -40,7 +40,7 @@ export default defineScreepModule<
     const { onSpawn } = this.modules[creepSpawnModuleName];
 
     onSpawn((name, code) => {
-      message.publish("onSpawn", {
+      message.publish('onCreepSpawn', {
         name,
         code,
       });
@@ -63,9 +63,7 @@ export default defineScreepModule<
   initialize() {
     // 数据初始化
     this.memory.creeps = {};
-
-    // 初始化
-    message.publish("moduleInit");
+    message.publish("check");
   },
   process() {
     const memory = this.memory;
@@ -84,7 +82,7 @@ export default defineScreepModule<
 
       // creep 不存在， 同时没有孵化，大概率挂掉了，触发防御
       if (!creep) {
-        message.publish("reSpawn", it);
+        message.publish('creepReSpawn', it);
         defense(config.room);
         return;
       }
@@ -121,10 +119,7 @@ export default defineScreepModule<
     });
   },
   postProcess() {
-    // 每隔10tick 检查一次数据
-    if (Game.time % 10) {
-      message.publish("check");
-      debug("doing check");
-    }
+    debug("doing check");
+    message.publish("check");
   },
 });
