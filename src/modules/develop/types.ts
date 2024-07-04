@@ -1,90 +1,92 @@
 import baseDevelop from ".";
+import message, { MessageType } from "./message";
 
 type DevelopScreepModule = typeof baseDevelop;
 
-export enum RoleName {
+type Message = typeof message;
+
+export type RoleName =
   /**
    * 采集者
    */
-  HARVERSTER = "harverster",
+  | "harverster"
   /**
    * 收集者
    */
-  COLLECTOR = "collector",
+  | "collector"
   /**
    * 升级者
    */
-  UPGRADER = "upgrader",
+  | "upgrader"
   /**
    * 建造者
    */
-  BUILDER = "builder",
+  | "builder"
   /**
    * 维修着
    */
-  REPAIRER = "repairer",
-}
-
-export type Messages = {
-  moduleInit: void;
-  onSpawn: {
-    name: string;
-    code: ScreepsReturnCode;
-  };
-  spawn: {
-    room: string;
-    role: RoleName;
-    config: any;
-  };
-  reSpawn: string;
-};
-
-export type Publisher = {
-  <K extends keyof Messages>(
-    ...args: Messages[K] extends void ? [K] : [K, Messages[K]]
-  ): void;
-};
+  | "repairer";
 
 export type LifecycleBindContextThis = DevelopScreepModule["binding"] extends (
   this: infer C,
   ...args: any
 ) => any
   ? C & {
-      publish: Publisher;
+      publish: Message["publish"];
     }
   : never;
 
 export type LifecycleProcessContextThis =
   DevelopScreepModule["binding"] extends (this: infer C, ...args: any) => any
     ? C & {
-        publish: Publisher;
+        publish: Message["publish"];
       }
     : never;
 
-export type MessageRecord = {
-  [K in keyof Messages]?: (
+export type MessageDefine = {
+  [K in keyof MessageType]?: (
     this: LifecycleBindContextThis,
-    params: Messages[K]
+    ...args: MessageType[K] extends void ? [] : [MessageType[K]]
   ) => void;
 };
 
-export type Role<T extends Record<string, any>> = {
-  messages: MessageRecord;
+export type Role<R extends RoleName> = {
+  messages: MessageDefine;
   plans: Array<
     (
       this: LifecycleProcessContextThis,
       creep: Creep,
-      data: CreepData<T>
+      data: CreepData<R>
     ) => void | number
   >;
 };
 
-export type CreepData<T extends Record<string, any> = Record<string, any>> = {
-  role: RoleName;
+export type HarversterData = {
+  sourceId: Source["id"];
+  targetId?: ConstructionSite["id"] | StructureContainer["id"];
+  startTick?: number;
+  walkTick?: number;
+};
+
+export type CollectorData = {
+  sourceId: StructureContainer["id"];
+  targetId: StructureSpawn["id"];
+};
+
+export type RoleDataMap = {
+  harverster: HarversterData;
+  collector: CollectorData;
+  builder: HarversterData;
+  repairer: HarversterData;
+  upgrader: HarversterData;
+};
+
+export type CreepData<R extends RoleName = RoleName> = {
+  role: R;
   room: string;
   cursor: number;
-  spwaning: boolean;
-} & T;
+  spawning: boolean;
+} & RoleDataMap[R];
 
 export type MemoryData = {
   creeps: Record<string, CreepData>;

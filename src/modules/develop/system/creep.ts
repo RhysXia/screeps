@@ -1,19 +1,14 @@
-import { CreepSpawnFn } from "modules/creepSpawn";
-import {
-  CreepData,
-  LifecycleBindContextThis,
-  MemoryData,
-  MessageRecord,
-  Role,
-  RoleName,
-} from "../types";
+import { MessageDefine, RoleName } from "../types";
 
-// @ts-ignore
 const bodiesMap: Record<RoleName, Array<BodyPartConstant>> = {
-  [RoleName.HARVERSTER]: [WORK, CARRY, MOVE],
+  harverster: [WORK, CARRY, MOVE],
+  collector: [WORK, CARRY, MOVE],
+  upgrader: [WORK, CARRY, MOVE],
+  repairer: [WORK, CARRY, MOVE],
+  builder: [WORK, CARRY, MOVE],
 };
 
-const spawn: MessageRecord = {
+const creep: MessageDefine = {
   onSpawn({ name, code }) {
     if (code === ERR_NAME_EXISTS) {
       return;
@@ -22,10 +17,9 @@ const spawn: MessageRecord = {
       delete this.memory.creeps[name];
       return;
     }
-    this.memory.creeps[name].spwaning = false;
+    this.memory.creeps[name].spawning = false;
   },
-  spawn({ room, role, config }) {
-    console.log('spawn', '------')
+  spawn({ room, role, ...others }) {
     const memory = this.memory.creeps;
 
     const bodies = bodiesMap[role];
@@ -34,12 +28,12 @@ const spawn: MessageRecord = {
     }`;
 
     memory[name] = {
+      ...others,
       role,
       room,
       cursor: 0,
-      spwaning: true,
-      ...config,
-    };
+      spawning: true,
+    } as any;
 
     this.modules.creepSpawn.spawn(room, name, bodies);
   },
@@ -51,8 +45,8 @@ const spawn: MessageRecord = {
 
     this.modules.creepSpawn.spawn(config.room, name, bodiesMap[config.role]);
 
-    config.spwaning = true;
+    config.spawning = true;
   },
 };
 
-export default spawn;
+export default creep;

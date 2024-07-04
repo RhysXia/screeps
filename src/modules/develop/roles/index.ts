@@ -4,9 +4,9 @@ import harverster from "./harverster";
 
 // @ts-ignore
 const roles: Record<RoleName, Role> = {
-  [RoleName.HARVERSTER]: harverster,
+  harverster,
   // [RoleName.BUILDER]: harverster,
-  [RoleName.COLLECTOR]: collector,
+  collector,
   // [RoleName.REPAIRER]: harverster,
   // [RoleName.UPGRADER]: harverster,
 };

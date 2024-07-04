@@ -7,22 +7,19 @@ import {
   moduleName as defenderModuleName,
   DefenderModuleExport,
 } from "modules/defender";
-import {
-  moduleName as messageModuleName,
-  MessageModuleExport,
-} from "modules/message";
-import { RoleName, Role, MemoryData, Publisher, MessageRecord } from "./types";
+import { RoleName, Role, MemoryData, MessageDefine } from "./types";
 import harverster from "./roles/harverster";
-import spawn from "./system/spawn";
+import creep from "./system/creep";
+import message, { MessageType } from "./message";
 
 export type DevelopModuleExport = {};
 
 // @ts-ignore
 const roles: Record<RoleName, Role<any>> = {
-  [RoleName.HARVERSTER]: harverster,
+  harverster: harverster,
 };
 
-const systems: Array<MessageRecord> = [spawn];
+const systems: Array<MessageDefine> = [creep];
 
 export const moduleName = "develop";
 
@@ -30,47 +27,42 @@ export default defineScreepModule<
   {
     [creepSpawnModuleName]: CreepSpawnModuleExport;
     [defenderModuleName]: DefenderModuleExport;
-    [messageModuleName]: MessageModuleExport;
   },
   DevelopModuleExport,
   MemoryData
 >({
   name: moduleName,
-  inject: [creepSpawnModuleName, defenderModuleName, messageModuleName],
+  inject: [creepSpawnModuleName, defenderModuleName],
   binding() {
     const { onSpawn } = this.modules[creepSpawnModuleName];
-    const { subsribe, publish } = this.modules[messageModuleName];
 
     onSpawn((name, code) => {
-      (publish as Publisher)("onSpawn", {
+      message.publish("onSpawn", {
         name,
         code,
       });
     });
 
-    Object.values(roles).forEach((role) => {
-      const messages = role.messages;
-      Object.keys(messages).forEach((msg) => {
-        const fn = messages[msg];
-        subsribe(msg, (params) => fn.call({ ...this, publish }, params));
-      });
-    });
+    const messageDefines = [
+      ...systems,
+      Object.values(roles).map((it) => it.messages),
+    ];
 
-    systems.forEach((sys) => {
+    messageDefines.forEach((sys) => {
       Object.keys(sys).forEach((msg) => {
         const fn = sys[msg];
-        subsribe(msg, (params) => fn.call({ ...this, publish }, params));
+        message.subscribe(msg as keyof MessageType, (params) =>
+          fn.call({ ...this, publish: message.publish }, params)
+        );
       });
     });
   },
   initialize() {
-
-    this.memory.creeps = {}
-
-    const { publish } = this.modules[messageModuleName];
+    // 数据初始化
+    this.memory.creeps = {};
 
     // 初始化
-    (publish as Publisher)("moduleInit");
+    message.publish("moduleInit");
   },
   process() {
     const memory = this.memory;
@@ -78,19 +70,18 @@ export default defineScreepModule<
     const creepsMemory = memory.creeps;
 
     const { defense } = this.modules[defenderModuleName];
-    const { publish } = this.modules[messageModuleName];
 
     // 执行 role plan
     Object.keys(creepsMemory).forEach((it) => {
       const creep = Game.creeps[it];
       const config = creepsMemory[it];
-      if (!config || config.spwaning) {
+      if (!config || config.spawning) {
         return;
       }
 
       // creep 不存在， 同时没有孵化，大概率挂掉了，触发防御
       if (!creep) {
-        (publish as Publisher)("reSpawn", it);
+        message.publish("reSpawn", it);
         defense(config.room);
         return;
       }
@@ -112,7 +103,11 @@ export default defineScreepModule<
         return;
       }
 
-      const ret = (plan as Function).call({ ...this, publish }, creep, config);
+      const ret = (plan as Function).call(
+        { ...this, publish: message.publish },
+        creep,
+        config
+      );
 
       if (typeof ret === "number") {
         const newCursor =

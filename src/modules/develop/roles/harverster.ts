@@ -1,12 +1,8 @@
 import { warning } from "core/logger";
-import { Role, RoleName } from "../types";
+import { Role } from "../types";
+import { CollectorConfigData } from "./collector";
 
-export type HarversterData = {
-  sourceId: Source["id"];
-  targetId?: ConstructionSite["id"] | StructureContainer["id"];
-};
-
-const harverster: Role<HarversterData> = {
+const harverster: Role<"harverster"> = {
   messages: {
     moduleInit() {
       _.forEach(Game.spawns, (spawn) => {
@@ -26,11 +22,9 @@ const harverster: Role<HarversterData> = {
 
         sources.forEach((s) => {
           this.publish("spawn", {
-            role: RoleName.HARVERSTER,
+            role: "harverster",
             room: room.name,
-            config: {
-              sourceId: s.sourceId,
-            },
+            sourceId: s.sourceId,
           });
         });
       });
@@ -38,8 +32,22 @@ const harverster: Role<HarversterData> = {
   },
   plans: [
     // 移动到目的地
-    (creep, config) => {
-      const { sourceId } = config;
+    function (creep, config) {
+      // 记录开始移动的时间
+      config.startTick = config.startTick || Game.time;
+
+      const { sourceId, targetId } = config;
+
+      if (targetId) {
+        const target = Game.getObjectById(targetId);
+        if (target) {
+          creep.moveTo(target.pos);
+
+          return creep.pos.inRangeTo(target.pos, 0) ? 1 : 0;
+        }
+      }
+
+      let target: StructureContainer | ConstructionSite | undefined;
 
       const source = Game.getObjectById<Source>(sourceId);
 
@@ -50,8 +58,6 @@ const harverster: Role<HarversterData> = {
           filter: (it) => it.structureType === STRUCTURE_CONTAINER,
         }
       );
-
-      let target: StructureContainer | ConstructionSite | undefined;
 
       if (containers.length) {
         target = containers[0];
@@ -83,16 +89,33 @@ const harverster: Role<HarversterData> = {
       return creep.pos.inRangeTo((target || source).pos, range) ? 1 : 0;
     },
     // 维护
-    (creep, config) => {
+    function (creep, config) {
+      // 记录移动花费的总时间
+      config.walkTick = config.walkTick || Game.time - config.startTick;
+
       const { targetId, sourceId } = config;
 
       const source = Game.getObjectById(sourceId);
+
+      // 提前孵化
+      if (creep.ticksToLive < config.walkTick || 2) {
+        this.publish("spawn", {
+          role: "harverster",
+          room: config.room,
+          sourceId: config.sourceId,
+          targetId: config.targetId,
+        });
+      }
 
       // 没有能量就进行采集，因为是维护阶段，所以允许采集一下工作一下
       if (creep.store[RESOURCE_ENERGY] <= 0) {
         const code = creep.harvest(source);
 
+        // 应该不会出现这种情况
         if (code === ERR_NOT_IN_RANGE) {
+          warning(
+            `creep(${creep.name}) could not harverst, because of out of range`
+          );
           return -1;
         }
         return;
@@ -126,8 +149,28 @@ const harverster: Role<HarversterData> = {
 
       // 先修理
       if (target instanceof StructureContainer) {
+        // 判断是否需要 collector
+        const creeps = this.memory.creeps;
+
+        if (
+          Object.values(creeps).every(
+            (it) =>
+              it.role !== "collector" ||
+              (it as CollectorConfigData).sourceId !== target.id
+          )
+        ) {
+          this.publish("spawn", {
+            room: config.room,
+            role: "collector",
+            sourceId: target.id,
+          });
+        }
+
         const code = creep.repair(target);
         if (code === ERR_NOT_IN_RANGE) {
+          warning(
+            `creep(${creep.name}) could not harverst, because of out of range`
+          );
           return -1;
         }
         return target.hits >= target.hitsMax ? 1 : 0;
@@ -137,7 +180,16 @@ const harverster: Role<HarversterData> = {
     },
     // 疯狂挖矿，多了会自动掉落，被container收集
     function (creep, config) {
-      const { sourceId } = config;
+      const { sourceId, walkTick } = config;
+
+      if (creep.ticksToLive < walkTick || 2) {
+        this.publish("spawn", {
+          role: "harverster",
+          room: config.room,
+          sourceId: config.sourceId,
+          targetId: config.targetId,
+        });
+      }
 
       const source = Game.getObjectById<Source>(sourceId);
 
@@ -154,7 +206,6 @@ const harverster: Role<HarversterData> = {
       // 快挂了，扔掉资源
       if (creep.ticksToLive < 2) {
         creep.drop(RESOURCE_ENERGY);
-        this.publish("reSpawn", creep.name);
       }
     },
   ],
