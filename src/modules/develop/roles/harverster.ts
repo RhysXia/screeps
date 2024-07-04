@@ -10,10 +10,8 @@ const harverster: Role<"harverster", "build" | "harvest"> = {
         const creepConfigs = Object.values(this.memory.creeps);
         const sources = room
           .find(FIND_SOURCES_ACTIVE)
+          .filter((s) => creepConfigs.some((it) => it.sourceId == s.id))
           .map((s) => {
-            if (creepConfigs.some((it) => it.sourceId == s.id)) {
-              return;
-            }
             return {
               sourceId: s.id,
             };
