@@ -7,5 +7,5 @@ import defender from "modules/defender";
 import { createInvokeChain } from "core/module/methods";
 
 export const loop = ErrorMapper.wrapLoop(
-  createInvokeChain(room, spawn, creepSpawn, develop, defender)
+  createInvokeChain(room, spawn, creepSpawn, defender)
 );
