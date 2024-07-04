@@ -74,6 +74,12 @@ export type CollectorData = {
   targetId: StructureSpawn["id"] | StructureExtension["id"];
 };
 
+export type UpgraderData = {
+  sourceId?: StructureContainer["id"];
+  targetId: StructureController['id'];
+};
+
+
 export type RoleDataMap = {
   harverster: HarversterData;
   collector: CollectorData;

@@ -64,9 +64,10 @@ const collector: Role<"collector", "back"> = {
       creep.moveTo(target.pos);
 
       if (creep.pos.inRangeTo(target.pos, 1)) {
-        creep.transfer(target, RESOURCE_ENERGY);
-        delete config.targetId;
-        return "prepare";
+        if (creep.transfer(target, RESOURCE_ENERGY) === OK) {
+          delete config.targetId;
+          return "prepare";
+        }
       }
     },
   },

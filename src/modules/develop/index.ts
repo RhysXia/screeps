@@ -11,22 +11,15 @@ import {
   moduleName as defenderModuleName,
   DefenderModuleExport,
 } from "modules/defender";
-import { RoleName, Role, MemoryData, Subscribes } from "./types";
-import harverster from "./roles/harverster";
+import { MemoryData, Subscribes } from "./types";
 import creep from "./system/creep";
 import message, { MessageType } from "./message";
 import { debug, error } from "core/logger";
-import collector from "./roles/collector";
+import roles from "./roles";
 
 export type DevelopModuleExport = {};
 
 const INIT_PLAN = "prepare";
-
-// @ts-ignore
-const roles: Record<RoleName, Role<any, any>> = {
-  harverster,
-  collector,
-};
 
 const systems: Array<Subscribes> = [creep];
 
