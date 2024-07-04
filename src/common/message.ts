@@ -3,6 +3,8 @@ export class Message<T extends Record<string, any>> {
 
   constructor() {
     this.subscribeMap = new Map();
+    this.subscribe = this.subscribe.bind(this);
+    this.publish = this.publish.bind(this);
   }
 
   subscribe<M extends keyof T>(

@@ -1,4 +1,4 @@
-import { MessageDefine, RoleName } from "../types";
+import { Subscribes, RoleName } from "../types";
 
 const bodiesMap: Record<RoleName, Array<BodyPartConstant>> = {
   harverster: [WORK, CARRY, MOVE],
@@ -8,7 +8,7 @@ const bodiesMap: Record<RoleName, Array<BodyPartConstant>> = {
   builder: [WORK, CARRY, MOVE],
 };
 
-const creep: MessageDefine = {
+const creep: Subscribes = {
   onSpawn({ name, code }) {
     if (code === ERR_NAME_EXISTS) {
       return;

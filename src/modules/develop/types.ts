@@ -43,21 +43,22 @@ export type LifecycleProcessContextThis =
       }
     : never;
 
-export type MessageDefine = {
+export type Subscribes = {
   [K in keyof MessageType]?: (
     this: LifecycleBindContextThis,
     ...args: MessageType[K] extends void ? [] : [MessageType[K]]
   ) => void;
 };
 
-export type Role<R extends RoleName> = {
-  messages: MessageDefine;
-  plans: Array<
+export type Role<R extends RoleName, PlanName extends string | void = void> = {
+  subscribes: Subscribes;
+  plans: Record<
+    PlanName extends void ? "prepare" : PlanName | "prepare",
     (
       this: LifecycleProcessContextThis,
       creep: Creep,
       data: CreepData<R>
-    ) => void | number
+    ) => void | PlanName | "prepare"
   >;
 };
 
@@ -70,7 +71,7 @@ export type HarversterData = {
 
 export type CollectorData = {
   sourceId: StructureContainer["id"];
-  targetId: StructureSpawn["id"];
+  targetId: StructureSpawn["id"] | StructureExtension["id"];
 };
 
 export type RoleDataMap = {
@@ -84,7 +85,7 @@ export type RoleDataMap = {
 export type CreepData<R extends RoleName = RoleName> = {
   role: R;
   room: string;
-  cursor: number;
+  cursor?: string;
   spawning: boolean;
 } & RoleDataMap[R];
 

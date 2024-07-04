@@ -1,9 +1,9 @@
-import { warning } from "core/logger";
-import { Role } from "../types";
-import { CollectorConfigData } from "./collector";
+import { debug, warning } from "core/logger";
+import { CollectorData, Role } from "../types";
 
-const harverster: Role<"harverster"> = {
-  messages: {
+// prepare -> build -> harvest
+const harverster: Role<"harverster", "build" | "harvest"> = {
+  subscribes: {
     moduleInit() {
       _.forEach(Game.spawns, (spawn) => {
         const room = spawn.room;
@@ -29,21 +29,52 @@ const harverster: Role<"harverster"> = {
         });
       });
     },
+    check() {
+      debug("haverster doing check");
+      _.forEach(Game.spawns, (spawn) => {
+        const room = spawn.room;
+        const creepConfigs = Object.values(this.memory.creeps);
+        const sources = room
+          .find(FIND_SOURCES_ACTIVE)
+          .map((s) => {
+            if (creepConfigs.some((it) => it.sourceId === s.id)) {
+              return;
+            }
+            return {
+              sourceId: s.id,
+            };
+          })
+          .filter(Boolean);
+
+        sources.forEach((s) => {
+          this.publish("spawn", {
+            role: "harverster",
+            room: room.name,
+            sourceId: s.sourceId,
+          });
+        });
+      });
+    },
   },
-  plans: [
+  plans: {
     // 移动到目的地
-    function (creep, config) {
+    prepare(creep, config) {
       // 记录开始移动的时间
       config.startTick = config.startTick || Game.time;
 
       const { sourceId, targetId } = config;
 
+      // 设置了target，则直接移动到target位置就行了
       if (targetId) {
         const target = Game.getObjectById(targetId);
         if (target) {
           creep.moveTo(target.pos);
 
-          return creep.pos.inRangeTo(target.pos, 0) ? 1 : 0;
+          // 移动到，开始建造 container
+          if (creep.pos.inRangeTo(target.pos, 0)) {
+            return "build";
+          }
+          return;
         }
       }
 
@@ -86,10 +117,12 @@ const harverster: Role<"harverster"> = {
 
       creep.moveTo((target || source).pos);
 
-      return creep.pos.inRangeTo((target || source).pos, range) ? 1 : 0;
+      if (creep.pos.inRangeTo((target || source).pos, range)) {
+        return "build";
+      }
     },
     // 维护
-    function (creep, config) {
+    build(creep, config) {
       // 记录移动花费的总时间
       config.walkTick = config.walkTick || Game.time - config.startTick;
 
@@ -98,7 +131,7 @@ const harverster: Role<"harverster"> = {
       const source = Game.getObjectById(sourceId);
 
       // 提前孵化
-      if (creep.ticksToLive < config.walkTick || 2) {
+      if (creep.ticksToLive < (config.walkTick || 2)) {
         this.publish("spawn", {
           role: "harverster",
           room: config.room,
@@ -116,7 +149,7 @@ const harverster: Role<"harverster"> = {
           warning(
             `creep(${creep.name}) could not harverst, because of out of range`
           );
-          return -1;
+          return "prepare";
         }
         return;
       }
@@ -147,7 +180,6 @@ const harverster: Role<"harverster"> = {
 
       config.targetId = target.id;
 
-      // 先修理
       if (target instanceof StructureContainer) {
         // 判断是否需要 collector
         const creeps = this.memory.creeps;
@@ -156,7 +188,7 @@ const harverster: Role<"harverster"> = {
           Object.values(creeps).every(
             (it) =>
               it.role !== "collector" ||
-              (it as CollectorConfigData).sourceId !== target.id
+              (it as CollectorData).sourceId !== target.id
           )
         ) {
           this.publish("spawn", {
@@ -166,23 +198,27 @@ const harverster: Role<"harverster"> = {
           });
         }
 
+        // 先修理
         const code = creep.repair(target);
         if (code === ERR_NOT_IN_RANGE) {
           warning(
             `creep(${creep.name}) could not harverst, because of out of range`
           );
-          return -1;
+          return "prepare";
         }
-        return target.hits >= target.hitsMax ? 1 : 0;
+        if (target.hits >= target.hitsMax) {
+          return "harvest";
+        }
+        return;
       }
 
       creep.build(target);
     },
     // 疯狂挖矿，多了会自动掉落，被container收集
-    function (creep, config) {
+    harvest(creep, config) {
       const { sourceId, walkTick } = config;
 
-      if (creep.ticksToLive < walkTick || 2) {
+      if (creep.ticksToLive < (walkTick || 2)) {
         this.publish("spawn", {
           role: "harverster",
           room: config.room,
@@ -196,7 +232,7 @@ const harverster: Role<"harverster"> = {
       const code = creep.harvest(source);
 
       if (code === ERR_NOT_IN_RANGE) {
-        return -2;
+        return "prepare";
       }
 
       if (code !== OK) {
@@ -208,7 +244,7 @@ const harverster: Role<"harverster"> = {
         creep.drop(RESOURCE_ENERGY);
       }
     },
-  ],
+  },
 };
 
 export default harverster;
