@@ -1,4 +1,4 @@
-import context from "../context";
+import context from "../system/spawn";
 import { Role, RoleName } from "../types";
 
 export type CollectorConfigData = {
@@ -7,6 +7,7 @@ export type CollectorConfigData = {
 };
 
 const collector: Role<CollectorConfigData> = {
+  messages: {},
   plans: [() => {
 
   }],

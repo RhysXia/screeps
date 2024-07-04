@@ -1,5 +1,6 @@
-import { CreepSpawnFn } from "modules/creepSpawn";
 import baseDevelop from ".";
+
+type DevelopScreepModule = typeof baseDevelop;
 
 export enum RoleName {
   /**
@@ -24,11 +25,58 @@ export enum RoleName {
   REPAIRER = "repairer",
 }
 
-export type BaseDevelopModule = typeof baseDevelop;
+export type Messages = {
+  moduleInit: void;
+  onSpawn: {
+    name: string;
+    code: ScreepsReturnCode;
+  };
+  spawn: {
+    room: string;
+    role: RoleName;
+    config: any;
+  };
+  reSpawn: string;
+};
+
+export type Publisher = {
+  <K extends keyof Messages>(
+    ...args: Messages[K] extends void ? [K] : [K, Messages[K]]
+  ): void;
+};
+
+export type LifecycleBindContextThis = DevelopScreepModule["binding"] extends (
+  this: infer C,
+  ...args: any
+) => any
+  ? C & {
+      publish: Publisher;
+    }
+  : never;
+
+export type LifecycleProcessContextThis =
+  DevelopScreepModule["binding"] extends (this: infer C, ...args: any) => any
+    ? C & {
+        publish: Publisher;
+      }
+    : never;
+
+export type MessageRecord = {
+  [K in keyof Messages]?: (
+    this: LifecycleBindContextThis,
+    params: Messages[K]
+  ) => void;
+};
 
 export type Role<T extends Record<string, any>> = {
-  checkAndCreate?(): void;
-  plans: Array<(creep: Creep, data: CreepData<T>) => void | number>;
+  messages: MessageRecord;
+  plans: Array<
+    (
+      this: LifecycleProcessContextThis,
+      creep: Creep,
+      data: CreepData<T>
+    ) => void | number
+  >;
 };
 
 export type CreepData<T extends Record<string, any> = Record<string, any>> = {
@@ -39,5 +87,5 @@ export type CreepData<T extends Record<string, any> = Record<string, any>> = {
 } & T;
 
 export type MemoryData = {
-  creeps: Record<string, CreepData>
-}
+  creeps: Record<string, CreepData>;
+};

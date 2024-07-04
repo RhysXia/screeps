@@ -1,4 +1,4 @@
-import context from "../context";
+import { warning } from "core/logger";
 import { Role, RoleName } from "../types";
 
 export type HarversterData = {
@@ -7,30 +7,34 @@ export type HarversterData = {
 };
 
 const harverster: Role<HarversterData> = {
-  checkAndCreate() {
-    _.forEach(Game.spawns, (spawn) => {
-      const room = spawn.room;
-      const creepConfigs = Object.values(context.getMemory().creeps);
-      const sources = room
-        .find(FIND_SOURCES_ACTIVE)
-        .map((s) => {
-          if (creepConfigs.some((it) => it.sourceId == s.id)) {
-            return;
-          }
-          return {
-            sourceId: s.id,
-          };
-        })
-        .filter(Boolean);
+  messages: {
+    moduleInit() {
+      _.forEach(Game.spawns, (spawn) => {
+        const room = spawn.room;
+        const creepConfigs = Object.values(this.memory.creeps);
+        const sources = room
+          .find(FIND_SOURCES_ACTIVE)
+          .map((s) => {
+            if (creepConfigs.some((it) => it.sourceId == s.id)) {
+              return;
+            }
+            return {
+              sourceId: s.id,
+            };
+          })
+          .filter(Boolean);
 
-      sources.forEach((s) => {
-        const config = context.creepSpawn<HarversterData>(
-          RoleName.HARVERSTER,
-          room.name
-        );
-        config.sourceId = s.sourceId;
+        sources.forEach((s) => {
+          this.publish("spawn", {
+            role: RoleName.HARVERSTER,
+            room: room.name,
+            config: {
+              sourceId: s.sourceId,
+            },
+          });
+        });
       });
-    });
+    },
   },
   plans: [
     // 移动到目的地
@@ -132,7 +136,7 @@ const harverster: Role<HarversterData> = {
       creep.build(target);
     },
     // 疯狂挖矿，多了会自动掉落，被container收集
-    (creep, config) => {
+    function (creep, config) {
       const { sourceId } = config;
 
       const source = Game.getObjectById<Source>(sourceId);
@@ -144,13 +148,13 @@ const harverster: Role<HarversterData> = {
       }
 
       if (code !== OK) {
-        console.error(`creep(${creep.name}) harvest error (${code})`);
+        warning(`creep(${creep.name}) harvest error (${code})`);
       }
 
       // 快挂了，扔掉资源
       if (creep.ticksToLive < 2) {
         creep.drop(RESOURCE_ENERGY);
-        context.creepRespawn(creep.name);
+        this.publish("reSpawn", creep.name);
       }
     },
   ],

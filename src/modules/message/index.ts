@@ -3,33 +3,29 @@ import { defineScreepModule } from "core/module";
 
 export type MessageModuleExport = {
   binding: {
-    publish(event: string, params: any, isGlobal?: boolean): void;
-    subsribe(event, fn: (params: any) => boolean, isGlobal?: boolean): void;
+    publish(message: string, params?: any, isGlobal?: boolean): void;
+    subsribe(message, fn: (params?: any) => void, isGlobal?: boolean): void;
   };
 };
 
 export const moduleName = "message";
 
-const fnMap = new Map<string, Map<string, Set<(params: any) => boolean>>>();
+const fnMap = new Map<string, Map<string, Set<(params: any) => void>>>();
 
-const globalFnMap = new Map<string, Set<(params: any) => boolean>>();
+const globalFnMap = new Map<string, Set<(params: any) => void>>();
 
-export default defineScreepModule<
-  {},
-  MessageModuleExport,
-  {
-    msgs: Array<{
-      e: string;
-      p: any;
-      r?: string;
-    }>;
-  }
->({
+const messages: Array<{
+  message: string;
+  params?: any;
+  room?: string;
+}> = [];
+
+export default defineScreepModule<{}, MessageModuleExport>({
   name: moduleName,
   binding() {
     return {
-      subsribe(event, fn, isGlobal) {
-        let map: Map<string, Set<(params: any) => boolean>>;
+      subsribe(message, fn, isGlobal) {
+        let map: Map<string, Set<(params: any) => void>>;
 
         if (isGlobal) {
           map = globalFnMap;
@@ -38,44 +34,40 @@ export default defineScreepModule<
           fnMap.set(this.targetModuleName, map);
         }
 
-        const set = map.get(event) || new Set();
+        const set = map.get(message) || new Set();
 
         set.add(fn);
 
-        map.set(event, set);
+        map.set(message, set);
       },
-      publish(event, params, isGlobal) {
-        const memory = this.memory;
-        const msgs = (memory.msgs = memory.msgs || []);
-        msgs.push({
-          e: event,
-          p: params,
-          r: isGlobal ? undefined : this.targetModuleName,
+      publish(message, params, isGlobal) {
+        messages.push({
+          message: message,
+          params: params,
+          room: isGlobal ? undefined : this.targetModuleName,
         });
       },
     };
   },
   postProcess() {
-    const memory = this.memory;
-    const msgs = memory.msgs || [];
-    for (let i = 0; i < msgs.length; i++) {
-      const msg = msgs[i];
+    while (true) {
+      const messageInfo = messages.pop();
+      if (!messageInfo) {
+        break;
+      }
 
-      const set = (msg.r ? fnMap.get(msg.r) : globalFnMap).get(msg.e);
+      const { message, room, params } = messageInfo;
+
+      const set = (room ? fnMap.get(room) : globalFnMap).get(message);
 
       if (!set || !set.size) {
-        warning(`no suscriber for message(${msg.e})`);
+        warning(`no suscriber for message(${message})`);
         continue;
       }
 
-      for (const fn of set) {
-        const result = fn(msg.p);
-        if (result) {
-          msgs.splice(i, 1);
-          i--;
-          break;
-        }
-      }
+      set.forEach((it) => {
+        it(params);
+      });
     }
   },
 });

@@ -1,3 +1,4 @@
+import { warning } from "core/logger";
 import { defineScreepModule } from "core/module";
 import {
   moduleName as creepSpawnModule,
@@ -26,13 +27,13 @@ export default defineScreepModule<
         const room = Game.rooms[roomName];
 
         if (!room) {
-          console.error(`not found room(${roomName})`);
+          warning(`not found room(${roomName})`);
           return;
         }
         const creeps = room.find(FIND_HOSTILE_CREEPS);
 
         if (creeps.length) {
-          console.error("has invader");
+          warning("has invader");
         }
       },
     };
