@@ -44,9 +44,7 @@ export default defineScreepModule<
           throw new Error(`room(${room}) not found`);
         }
 
-        const roomConfig = memory[room] || {};
-
-        memory[room] = roomConfig;
+        const roomConfig = (memory[room] = memory[room] || {});
 
         roomConfig[this.targetModuleName] = v;
       },
