@@ -1,4 +1,4 @@
-import { defineScreepModule } from "core/module";
+import { defineScreepsModule, ScreepsModuleExportContext } from "core/module";
 
 export enum RoomChange {
   ADD,
@@ -7,25 +7,24 @@ export enum RoomChange {
 
 export type RoomListener = (name: string, code: RoomChange) => void;
 
-export type RoomModuleExport = {
-  binding: {
+export type RoomModuleExport = Record<
+  "binding" | "initialize" | "process",
+  {
     getRoomConfig<T extends any = any>(room: string): T;
     setRoomConfig<T extends any = any>(room: string, v: T): void;
-  };
-};
+  }
+>;
 
 export const moduleName = "room";
 
-export default defineScreepModule<
+export default defineScreepsModule<
   {},
   RoomModuleExport,
   Record<string, Record<string, any>>
->({
-  name: moduleName,
-  binding() {
-    const memory = this.memory;
+>(moduleName)(({ memory }) => {
+  const createExports = ({ targetModuleName }: ScreepsModuleExportContext) => {
     return {
-      getRoomConfig(room) {
+      getRoomConfig(room: string) {
         if (!Game.rooms[room]) {
           delete memory[room];
           throw new Error(`room(${room}) not found`);
@@ -36,9 +35,9 @@ export default defineScreepModule<
           return undefined;
         }
 
-        return roomConfig[this.targetModuleName];
+        return roomConfig[targetModuleName];
       },
-      setRoomConfig(room, v) {
+      setRoomConfig(room: string, v: any) {
         if (!Game.rooms[room]) {
           delete memory[room];
           throw new Error(`room(${room}) not found`);
@@ -46,19 +45,32 @@ export default defineScreepModule<
 
         const roomConfig = (memory[room] = memory[room] || {});
 
-        roomConfig[this.targetModuleName] = v;
+        roomConfig[targetModuleName] = v;
       },
     };
-  },
-  postProcess() {
-    // 隔5个ticks，清理一次memory
-    if (Game.time % 5) {
-      const memory = this.memory;
-      Object.keys(memory).forEach((name) => {
-        if (!Game.rooms[name]) {
-          delete memory[name];
-        }
-      });
-    }
-  },
+  };
+
+
+  return {
+    binding() {
+      return createExports;
+    },
+    initialize() {
+      return createExports;
+    },
+    process() {
+      return createExports;
+    },
+    postProcess() {
+      // 隔5个ticks，清理一次memory
+      if (Game.time % 5) {
+        const memory = this.memory;
+        Object.keys(memory).forEach((name) => {
+          if (!Game.rooms[name]) {
+            delete memory[name];
+          }
+        });
+      }
+    },
+  };
 });

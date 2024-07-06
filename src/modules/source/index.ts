@@ -1,4 +1,4 @@
-import { defineScreepModule } from "core/module";
+import { defineScreepsModule } from "core/module";
 import { RoomModuleExport, moduleName as roomModuleName } from "../room";
 
 export type SourceModuleExport = {
@@ -11,32 +11,45 @@ type RoomConfig = Array<Source["id"]>;
 
 export const moduleName = "source";
 
-export default defineScreepModule<
+export default defineScreepsModule<
   {
     [roomModuleName]: RoomModuleExport;
   },
   SourceModuleExport
->({
-  name: moduleName,
-  inject: [roomModuleName],
-  binding() {
-    const { getRoomConfig } = this.modules[roomModuleName];
-
+>(moduleName, [roomModuleName])(() => {
+  const createExport = ({
+    [roomModuleName]: { getRoomConfig, setRoomConfig },
+  }: {
+    [roomModuleName]: RoomModuleExport["binding"];
+  }) => {
     return {
-      getSourceIdsByRoom(room) {
-        const sourceIds = getRoomConfig<RoomConfig>(room);
-        return sourceIds || [];
+      getSourceIdsByRoom(roomName: string) {
+        const sourceIds = getRoomConfig<RoomConfig>(roomName);
+
+        if (sourceIds) {
+          return sourceIds;
+        }
+
+        const room = Game.rooms[roomName];
+
+        const newSourceIds = room.find(FIND_SOURCES).map((it) => it.id);
+
+        setRoomConfig<RoomConfig>(roomName, newSourceIds);
+
+        return newSourceIds;
       },
     };
-  },
-  initialize() {
-    const { setRoomConfig } = this.modules[roomModuleName];
-    for (const name in Game.rooms) {
-      const room = Game.rooms[name];
+  };
 
-      const sourceIds = room.find(FIND_SOURCES).map((it) => it.id);
-
-      setRoomConfig<RoomConfig>(name, sourceIds);
-    }
-  },
+  return {
+    binding(ctx) {
+      return createExport(ctx);
+    },
+    initialize(ctx) {
+      return createExport(ctx);
+    },
+    process(ctx) {
+      return createExport(ctx);
+    },
+  };
 });

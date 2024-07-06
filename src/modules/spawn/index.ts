@@ -1,4 +1,4 @@
-import { defineScreepModule } from "core/module";
+import { defineScreepModule } from "core/module_back";
 import { RoomModuleExport, moduleName as roomModuleName } from "../room";
 
 export type SpawnModuleExport = {

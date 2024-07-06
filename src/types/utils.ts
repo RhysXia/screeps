@@ -22,3 +22,7 @@ const EMPTY_OBJECT_KEY = Symbol("empty_object");
 export type EmptyObject = {
   [EMPTY_OBJECT_KEY]?: never;
 };
+
+export type ArrayToUnion<T extends Array<any>> = T extends Array<infer I>
+  ? I
+  : never;

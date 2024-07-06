@@ -1,5 +1,5 @@
 import { warning } from "core/logger";
-import { defineScreepModule } from "core/module";
+import { defineScreepModule } from "core/module_back";
 import {
   moduleName as creepSpawnModule,
   CreepSpawnModuleExport,
