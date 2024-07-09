@@ -1,60 +1,30 @@
 import { UnionToTuple } from "types/utils";
 import {
-  ExtractLifecycleContext,
   ExtractScreepsModuleLifecycle,
   ScreepsModule,
   ScreepsModuleContext,
-  ScreepsModuleExportContext,
+  ScreepsModuleExport,
   ScreepsModuleImport,
 } from "./types";
 
-const defineScreepsModule = <
+export default <
   SMI extends ScreepsModuleImport,
+  SME extends ScreepsModuleExport,
   Mem extends Record<string, any> = Record<string, any>
 >(
   name: string,
-  ...agrs: UnionToTuple<keyof SMI> extends [] ? [] : [UnionToTuple<keyof SMI>]
+  ...args: UnionToTuple<keyof SMI> extends [] ? [] : [UnionToTuple<keyof SMI>]
 ) => {
-  return (a: {
-    binding?: <T>(
-          ctx: ExtractLifecycleContext<"binding", SMI>
-        ) => void | ((exportContext: ScreepsModuleExportContext) => T);
-        initialize?: <T>(
-          ctx: ExtractLifecycleContext<"initialize", SMI>
-        ) => void | ((exportContext: ScreepsModuleExportContext) => T);
-        process?: <T>(
-          ctx: ExtractLifecycleContext<"process", SMI>
-        ) => void | ((exportContext: ScreepsModuleExportContext) => T);
-        postProcess?: <T>(
-          ctx: ExtractLifecycleContext<"postProcess", SMI>
-        ) => void | ((exportContext: ScreepsModuleExportContext) => T);
-  }) => {
-   return a
-  }
+  return (
+    lifecycles: (
+      ctx: ScreepsModuleContext<Mem>
+    ) => ExtractScreepsModuleLifecycle<SMI, SME>
+  ) => {
+    const module = lifecycles as ScreepsModule<SMI, SME, Mem>;
+
+    module.name = name;
+    module.imports = args[0];
+
+    return module;
+  };
 };
-
-
-const a = defineScreepsModule<{
-  module1: {
-    initialize: {
-      fn1: void
-    }
-  }
-}>("module", ['module1'])
-.initialize((ctx, lctx) => {
-  return {
-    a: 1
-  }
-})
-
-type A = {
-  <T>(a: T):  {
-    demo: T
-  }
-}
-
-const b: A = (a: string) => {
-  return {
-    demo: 1
-  }
-}
